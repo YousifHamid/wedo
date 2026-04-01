@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Modal, Alert } from 'react-native';
 import { Power, MapPin, Navigation, User, Bell, Wallet, Clock, Car, TrendingUp } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import * as Location from 'expo-location';
 import useAuthStore from '../../store/useAuthStore';
+import api from '../../services/api';
+import { getSocket } from '../../services/socket';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
+import { DISPATCH_COUNTDOWN } from '../../config/env';
 
 const { width, height } = Dimensions.get('window');
 
@@ -19,70 +22,178 @@ try {
 
 export default function DriverHomeScreen({ navigation }: any) {
   const { t, i18n } = useTranslation();
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const isRTL = i18n.language === 'ar';
   
-  const [isOnline, setIsOnline] = useState(false);
+  const [isOnline, setIsOnline] = useState(user?.isOnline || false);
   const [location, setLocation] = useState<any>(null);
   const [mapError, setMapError] = useState(false);
   const [incomingTrip, setIncomingTrip] = useState<any>(null);
   const [activeTrip, setActiveTrip] = useState<any>(null);
-  const [countdown, setCountdown] = useState(15);
+  const [countdown, setCountdown] = useState(DISPATCH_COUNTDOWN);
+  const [walletBalance, setWalletBalance] = useState(user?.walletBalance ?? 0);
+  const [todayTrips, setTodayTrips] = useState(user?.totalTrips ?? 0);
+  const [todayEarnings, setTodayEarnings] = useState(user?.totalEarnings ?? 0);
 
-  const walletBalance = user?.walletBalance ?? 2500;
   const isBlocked = walletBalance <= 0;
-  const todayTrips = 12;
-  const todayEarnings = 8400;
 
+  // Fetch real wallet balance
   useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        const response = await api.get('/wallet/balance');
+        setWalletBalance(response.data.balance);
+        updateUser({ walletBalance: response.data.balance });
+      } catch (e) {}
+    };
+    fetchBalance();
+  }, []);
+
+  // Location tracking
+  useEffect(() => {
+    let locationSub: any = null;
     (async () => {
       try {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') return;
         let loc = await Location.getCurrentPositionAsync({});
         setLocation(loc.coords);
+
+        // Continuous location updates when online
+        if (isOnline) {
+          locationSub = await Location.watchPositionAsync(
+            { accuracy: Location.Accuracy.High, timeInterval: 10000, distanceInterval: 50 },
+            (newLoc) => {
+              setLocation(newLoc.coords);
+              // Send location to server via socket
+              const socket = getSocket();
+              if (socket) {
+                socket.emit('driver:location_update', {
+                  lat: newLoc.coords.latitude,
+                  lng: newLoc.coords.longitude,
+                });
+              }
+            }
+          );
+        }
       } catch (e) {}
     })();
-  }, []);
 
-  // Simulate incoming trip when online
+    return () => {
+      if (locationSub) locationSub.remove();
+    };
+  }, [isOnline]);
+
+  // Listen for incoming trip requests via socket
   useEffect(() => {
-    if (isOnline && !isBlocked && !activeTrip) {
-      const timer = setTimeout(() => {
-        setIncomingTrip({
-          id: 'trip_101',
-          riderName: 'عمر يوسف',
-          riderNameEn: 'Omar Youssef',
-          pickupZone: 'الخرطوم شمال',
-          pickupZoneEn: 'Khartoum North',
-          dropoffZone: 'أم درمان',
-          dropoffZoneEn: 'Omdurman',
-          fare: 4500,
-          commission: 675,
-        });
-        setCountdown(15);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
+    const socket = getSocket();
+    if (!socket) return;
+
+    socket.on('trip:incoming_request', (data: any) => {
+      if (isOnline && !activeTrip) {
+        setIncomingTrip(data);
+        setCountdown(DISPATCH_COUNTDOWN);
+      }
+    });
+
+    socket.on('driver:blocked', (data: any) => {
+      Alert.alert(
+        isRTL ? 'تم حظر الحساب' : 'Account Blocked',
+        data.message || (isRTL ? 'رصيد المحفظة غير كافٍ' : 'Insufficient wallet balance')
+      );
+      setIsOnline(false);
+    });
+
+    socket.on('driver:status_confirmed', (data: any) => {
+      setIsOnline(data.isOnline);
+    });
+
+    return () => {
+      socket.off('trip:incoming_request');
+      socket.off('driver:blocked');
+      socket.off('driver:status_confirmed');
+    };
   }, [isOnline, activeTrip]);
 
-  // Countdown
+  // Countdown for incoming trip
   useEffect(() => {
     if (incomingTrip && countdown > 0) {
       const timer = setInterval(() => setCountdown(c => c - 1), 1000);
       return () => clearInterval(timer);
     }
-    if (countdown === 0 && incomingTrip) setIncomingTrip(null);
+    if (countdown === 0 && incomingTrip) {
+      // Auto-reject on timeout
+      handleReject();
+    }
   }, [incomingTrip, countdown]);
 
-  const handleAccept = () => {
-    setActiveTrip(incomingTrip);
+  const handleAccept = async () => {
+    try {
+      const response = await api.post(`/trip/${incomingTrip.tripId}/accept`);
+      setActiveTrip({ ...incomingTrip, ...response.data.trip });
+      setIncomingTrip(null);
+
+      // Join trip room
+      const socket = getSocket();
+      if (socket) {
+        socket.emit('trip:join_room', incomingTrip.tripId);
+        socket.emit('trip:driver_response', {
+          tripId: incomingTrip.tripId,
+          response: 'accepted',
+        });
+      }
+    } catch (error: any) {
+      Alert.alert(t('error'), error.response?.data?.message || 'Failed to accept trip');
+    }
+  };
+
+  const handleReject = async () => {
+    try {
+      if (incomingTrip?.tripId) {
+        await api.post(`/trip/${incomingTrip.tripId}/reject`);
+        const socket = getSocket();
+        if (socket) {
+          socket.emit('trip:driver_response', {
+            tripId: incomingTrip.tripId,
+            response: 'rejected',
+          });
+        }
+      }
+    } catch (e) {}
     setIncomingTrip(null);
   };
 
   const handleToggleOnline = () => {
-    if (isBlocked) return;
-    setIsOnline(!isOnline);
+    if (isBlocked) {
+      Alert.alert(
+        isRTL ? 'المحفظة فارغة' : 'Wallet Empty',
+        isRTL ? 'يرجى شحن المحفظة أولاً' : 'Please top up your wallet first'
+      );
+      return;
+    }
+
+    const newStatus = !isOnline;
+    const socket = getSocket();
+    if (socket) {
+      socket.emit('driver:status_change', { isOnline: newStatus });
+    }
+    setIsOnline(newStatus);
+    updateUser({ isOnline: newStatus });
+  };
+
+  const handleCompleteTrip = async () => {
+    try {
+      if (activeTrip?._id || activeTrip?.tripId) {
+        const tripId = activeTrip._id || activeTrip.tripId;
+        await api.put(`/trip/${tripId}/status`, { status: 'completed' });
+
+        // Refresh wallet
+        const balRes = await api.get('/wallet/balance');
+        setWalletBalance(balRes.data.balance);
+        updateUser({ walletBalance: balRes.data.balance });
+      }
+    } catch (e) {}
+    setActiveTrip(null);
   };
 
   const renderMap = () => {
@@ -224,29 +335,35 @@ export default function DriverHomeScreen({ navigation }: any) {
             <View style={styles.tripZones}>
               <View style={styles.tripZoneItem}>
                 <MapPin size={16} color={COLORS.primary} />
-                <Text style={styles.tripZoneText}>{isRTL ? incomingTrip?.pickupZone : incomingTrip?.pickupZoneEn}</Text>
+                <Text style={styles.tripZoneText}>
+                  {isRTL ? incomingTrip?.pickupZone?.nameAr || incomingTrip?.pickupZone : incomingTrip?.pickupZone?.name || incomingTrip?.pickupZoneEn || 'Pickup'}
+                </Text>
               </View>
               <View style={styles.tripZoneItem}>
                 <Navigation size={16} color={COLORS.warning} />
-                <Text style={styles.tripZoneText}>{isRTL ? incomingTrip?.dropoffZone : incomingTrip?.dropoffZoneEn}</Text>
+                <Text style={styles.tripZoneText}>
+                  {isRTL ? incomingTrip?.dropoffZone?.nameAr || incomingTrip?.dropoffZone : incomingTrip?.dropoffZone?.name || incomingTrip?.dropoffZoneEn || 'Dropoff'}
+                </Text>
               </View>
             </View>
 
             <View style={styles.fareInfo}>
               <View>
                 <Text style={styles.fareInfoLabel}>{t('trip_fare')}</Text>
-                <Text style={styles.fareInfoValue}>{t('sdg')} {incomingTrip?.fare?.toLocaleString()}</Text>
+                <Text style={styles.fareInfoValue}>{t('sdg')} {incomingTrip?.fareEstimate?.toLocaleString() || incomingTrip?.fare?.toLocaleString()}</Text>
               </View>
               <View>
                 <Text style={styles.fareInfoLabel}>{t('commission_deduction')}</Text>
-                <Text style={[styles.fareInfoValue, { color: COLORS.error }]}>-{t('sdg')} {incomingTrip?.commission?.toLocaleString()}</Text>
+                <Text style={[styles.fareInfoValue, { color: COLORS.error }]}>
+                  -{t('sdg')} {Math.round((incomingTrip?.fareEstimate || incomingTrip?.fare || 0) * 0.15).toLocaleString()}
+                </Text>
               </View>
             </View>
 
             <TouchableOpacity style={styles.acceptBtn} onPress={handleAccept}>
               <Text style={styles.acceptBtnText}>{t('accept_trip')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.rejectBtn} onPress={() => setIncomingTrip(null)}>
+            <TouchableOpacity style={styles.rejectBtn} onPress={handleReject}>
               <Text style={styles.rejectBtnText}>{t('reject_trip')}</Text>
             </TouchableOpacity>
           </View>
@@ -262,16 +379,20 @@ export default function DriverHomeScreen({ navigation }: any) {
           </View>
           <Text style={styles.activeTitle}>{t('heading_to_pickup')}</Text>
           <View style={styles.activeRiderRow}>
-            <Text style={styles.activeRider}>{isRTL ? activeTrip.riderName : activeTrip.riderNameEn}</Text>
-            <Text style={styles.activeFare}>{t('sdg')} {activeTrip.fare?.toLocaleString()}</Text>
+            <Text style={styles.activeRider}>
+              {activeTrip.rider?.name || (isRTL ? activeTrip.riderName : activeTrip.riderNameEn) || 'Rider'}
+            </Text>
+            <Text style={styles.activeFare}>
+              {t('sdg')} {(activeTrip.fareEstimate || activeTrip.fare)?.toLocaleString()}
+            </Text>
           </View>
           <View style={styles.activeActions}>
             <TouchableOpacity style={styles.navBtn}>
               <Navigation color={COLORS.onPrimary} size={16} />
               <Text style={styles.navText}>{t('navigate')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.statusUpdateBtn} onPress={() => setActiveTrip(null)}>
-              <Text style={styles.statusUpdateText}>{t('arrived_pickup')}</Text>
+            <TouchableOpacity style={styles.statusUpdateBtn} onPress={handleCompleteTrip}>
+              <Text style={styles.statusUpdateText}>{t('complete_trip')}</Text>
             </TouchableOpacity>
           </View>
         </View>

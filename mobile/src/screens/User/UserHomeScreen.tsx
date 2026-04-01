@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Dimensions, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Dimensions, Keyboard, Alert } from 'react-native';
 import * as Location from 'expo-location';
 import useAuthStore from '../../store/useAuthStore';
 import useTripStore from '../../store/useTripStore';
+import api from '../../services/api';
 import { useTranslation } from 'react-i18next';
-import { ZONES, ZoneItem, getZoneFare } from '../../constants/zones';
+import { ZONES as LOCAL_ZONES, ZoneItem, getZoneFare } from '../../constants/zones';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
 import { Search, MapPin, Car, User, X, ChevronRight, Crown, Shield, Clock, Menu, Wallet, History } from 'lucide-react-native';
 
@@ -28,18 +29,39 @@ export default function UserHomeScreen({ navigation }: any) {
   const [location, setLocation] = useState<any>(null);
   const [destination, setDestination] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [zones, setZones] = useState<ZoneItem[]>(LOCAL_ZONES);
   const [filteredZones, setFilteredZones] = useState<ZoneItem[]>([]);
   const [selectedDropoff, setSelectedDropoff] = useState<ZoneItem | null>(null);
   const [mapError, setMapError] = useState(false);
 
-  const nearbyDrivers = [
-    { id: 1, lat: 15.5936, lng: 32.5499 },
-    { id: 2, lat: 15.6036, lng: 32.5599 },
-    { id: 3, lat: 15.5836, lng: 32.5399 },
-  ];
+  // Fetch zones from API, fallback to local
+  useEffect(() => {
+    const fetchZones = async () => {
+      try {
+        const response = await api.get('/zones');
+        if (response.data && response.data.length > 0) {
+          const apiZones: ZoneItem[] = response.data.map((z: any) => ({
+            _id: z._id,
+            name: z.name,
+            nameAr: z.nameAr,
+            description: z.description,
+            descriptionAr: z.descriptionAr,
+          }));
+          setZones(apiZones);
+          setPickupZone(apiZones[0]);
+        }
+      } catch (e) {
+        // Use local zones as fallback
+        console.log('[Wedo] Using local zones fallback');
+      }
+    };
+    fetchZones();
+  }, []);
 
   useEffect(() => {
-    setPickupZone(ZONES[0]);
+    if (zones.length > 0) {
+      setPickupZone(zones[0]);
+    }
     (async () => {
       try {
         let { status } = await Location.requestForegroundPermissionsAsync();
@@ -54,7 +76,7 @@ export default function UserHomeScreen({ navigation }: any) {
   useEffect(() => {
     if (destination.trim().length > 0) {
       const query = destination.toLowerCase();
-      const results = ZONES.filter(z => {
+      const results = zones.filter(z => {
         return z.name.toLowerCase().includes(query) || 
                z.nameAr.includes(destination) || 
                z.description?.toLowerCase().includes(query) ||
@@ -66,22 +88,31 @@ export default function UserHomeScreen({ navigation }: any) {
       setFilteredZones([]);
       setShowSuggestions(false);
     }
-  }, [destination]);
+  }, [destination, zones]);
 
-  const handleSelectDestination = (zone: ZoneItem) => {
+  const handleSelectDestination = async (zone: ZoneItem) => {
     setSelectedDropoff(zone);
     setDropoffZone(zone);
     setDestination(isRTL ? zone.nameAr : zone.name);
     setShowSuggestions(false);
     Keyboard.dismiss();
-    const fare = getZoneFare(ZONES[0]._id, zone._id, vehicleType);
-    setFareEstimate(fare);
+
+    // Try to get pricing from API
+    try {
+      const pickupId = zones[0]._id;
+      const response = await api.get(`/zones/pricing?from=${pickupId}&to=${zone._id}`);
+      const pricing = response.data;
+      const fare = vehicleType === 'premium' ? pricing.premiumFare : pricing.baseFare;
+      setFareEstimate(fare);
+    } catch (e) {
+      // Fallback to local pricing
+      const fare = getZoneFare(zones[0]._id, zone._id, vehicleType);
+      setFareEstimate(fare);
+    }
   };
 
-  const handleRequestRide = () => {
+  const handleRequestRide = async () => {
     if (!selectedDropoff) return;
-    const fare = getZoneFare(ZONES[0]._id, selectedDropoff._id, vehicleType);
-    setFareEstimate(fare);
     setTripStatus('searching');
     navigation.navigate('Searching');
   };
@@ -92,17 +123,25 @@ export default function UserHomeScreen({ navigation }: any) {
     setShowSuggestions(false);
   };
 
-  const handleSelectType = (type: 'standard' | 'premium') => {
+  const handleSelectType = async (type: 'standard' | 'premium') => {
     setVehicleType(type);
     if (selectedDropoff) {
-      const fare = getZoneFare(ZONES[0]._id, selectedDropoff._id, type);
-      setFareEstimate(fare);
+      try {
+        const pickupId = zones[0]._id;
+        const response = await api.get(`/zones/pricing?from=${pickupId}&to=${selectedDropoff._id}`);
+        const pricing = response.data;
+        const fare = type === 'premium' ? pricing.premiumFare : pricing.baseFare;
+        setFareEstimate(fare);
+      } catch (e) {
+        const fare = getZoneFare(zones[0]._id, selectedDropoff._id, type);
+        setFareEstimate(fare);
+      }
     }
   };
 
-  const currentFare = selectedDropoff ? getZoneFare(ZONES[0]._id, selectedDropoff._id, vehicleType) : 0;
-  const standardFare = selectedDropoff ? getZoneFare(ZONES[0]._id, selectedDropoff._id, 'standard') : 0;
-  const premiumFare = selectedDropoff ? getZoneFare(ZONES[0]._id, selectedDropoff._id, 'premium') : 0;
+  const currentFare = selectedDropoff ? getZoneFare(zones[0]._id, selectedDropoff._id, vehicleType) : 0;
+  const standardFare = selectedDropoff ? getZoneFare(zones[0]._id, selectedDropoff._id, 'standard') : 0;
+  const premiumFare = selectedDropoff ? getZoneFare(zones[0]._id, selectedDropoff._id, 'premium') : 0;
 
   const renderMap = () => {
     if (MapView && !mapError) {
@@ -118,11 +157,6 @@ export default function UserHomeScreen({ navigation }: any) {
                 <View style={styles.userMarker} />
               </Marker>
             )}
-            {Marker && nearbyDrivers.map(d => (
-              <Marker key={d.id} coordinate={{ latitude: d.lat, longitude: d.lng }}>
-                <Car color="#000" size={20} />
-              </Marker>
-            ))}
           </MapView>
         );
       } catch (e) { setMapError(true); }

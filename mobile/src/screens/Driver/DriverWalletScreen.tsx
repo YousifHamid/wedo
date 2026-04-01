@@ -1,38 +1,83 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, SafeAreaView, ActivityIndicator } from 'react-native';
 import { Wallet, ArrowUpCircle, ArrowDownCircle, ChevronLeft, Clock, Plus } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import useAuthStore from '../../store/useAuthStore';
+import api from '../../services/api';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
 
 export default function DriverWalletScreen({ navigation }: any) {
   const { t, i18n } = useTranslation();
-  const { user } = useAuthStore();
+  const { user, updateUser } = useAuthStore();
   const isRTL = i18n.language === 'ar';
-  const walletBalance = user?.walletBalance ?? 2500;
   
+  const [walletBalance, setWalletBalance] = useState(user?.walletBalance ?? 0);
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState('');
   const [reference, setReference] = useState('');
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loadingTx, setLoadingTx] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Mock transactions
-  const transactions = [
-    { id: 1, type: 'credit', desc: isRTL ? 'أرباح رحلة (شارع المطار)' : 'Trip earnings (Airport Road)', amount: 807, time: '14 min ago' },
-    { id: 2, type: 'debit', desc: isRTL ? 'عمولة (15%)' : 'Commission (15%)', amount: -143, time: '14 min ago' },
-    { id: 3, type: 'credit', desc: isRTL ? 'شحن محفظة معتمد' : 'Wallet top-up approved', amount: 15000, time: '2 hours ago' },
-    { id: 4, type: 'credit', desc: isRTL ? 'أرباح رحلة (أم درمان)' : 'Trip earnings (Omdurman)', amount: 3825, time: '3 hours ago' },
-    { id: 5, type: 'debit', desc: isRTL ? 'عمولة (15%)' : 'Commission (15%)', amount: -675, time: '3 hours ago' },
-  ];
+  // Fetch balance and transactions from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [balRes, txRes] = await Promise.all([
+          api.get('/wallet/balance'),
+          api.get('/wallet/transactions'),
+        ]);
+        setWalletBalance(balRes.data.balance);
+        updateUser({ walletBalance: balRes.data.balance });
+        setTransactions(txRes.data.transactions || []);
+      } catch (e) {
+        console.log('[Wedo] Failed to fetch wallet data');
+      } finally {
+        setLoadingTx(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  const handleSubmitTopUp = () => {
+  const handleSubmitTopUp = async () => {
     if (!topUpAmount || !reference) {
       Alert.alert(t('error'), isRTL ? 'يرجى ملء جميع الحقول' : 'Please fill all fields');
       return;
     }
-    Alert.alert(t('success'), isRTL ? 'تم إرسال طلب الشحن. في انتظار موافقة الإدارة.' : 'Top-up request submitted. Awaiting admin approval.');
-    setShowTopUp(false);
-    setTopUpAmount('');
-    setReference('');
+    const amount = parseInt(topUpAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert(t('error'), isRTL ? 'المبلغ غير صحيح' : 'Invalid amount');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await api.post('/wallet/topup', { amount, reference });
+      Alert.alert(
+        t('success'),
+        isRTL ? 'تم إرسال طلب الشحن. في انتظار موافقة الإدارة.' : 'Top-up request submitted. Awaiting admin approval.'
+      );
+      setShowTopUp(false);
+      setTopUpAmount('');
+      setReference('');
+    } catch (error: any) {
+      Alert.alert(t('error'), error.response?.data?.message || 'Failed to submit top-up request');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHrs = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHrs < 24) return `${diffHrs} hours ago`;
+    return `${diffDays} days ago`;
   };
 
   return (
@@ -87,8 +132,12 @@ export default function DriverWalletScreen({ navigation }: any) {
               value={reference}
               onChangeText={setReference}
             />
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmitTopUp}>
-              <Text style={styles.submitBtnText}>{t('submit_request')}</Text>
+            <TouchableOpacity 
+              style={[styles.submitBtn, submitting && { opacity: 0.7 }]} 
+              onPress={handleSubmitTopUp}
+              disabled={submitting}
+            >
+              <Text style={styles.submitBtnText}>{submitting ? '...' : t('submit_request')}</Text>
             </TouchableOpacity>
             <Text style={styles.topUpNote}>{t('top_up_instructions')}</Text>
           </View>
@@ -96,24 +145,36 @@ export default function DriverWalletScreen({ navigation }: any) {
 
         {/* Transaction History */}
         <Text style={[styles.sectionTitle, isRTL && styles.textRight]}>{t('transaction_history')}</Text>
-        {transactions.map((tx) => (
-          <View key={tx.id} style={styles.txItem}>
-            <View style={[styles.txIcon, { backgroundColor: tx.type === 'credit' ? '#e8f5e9' : '#fef2f2' }]}>
-              {tx.type === 'credit' ? (
-                <ArrowDownCircle color={COLORS.success} size={20} />
-              ) : (
-                <ArrowUpCircle color={COLORS.error} size={20} />
-              )}
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={[styles.txDesc, isRTL && styles.textRight]}>{tx.desc}</Text>
-              <Text style={[styles.txTime, isRTL && styles.textRight]}>{tx.time}</Text>
-            </View>
-            <Text style={[styles.txAmount, { color: tx.amount > 0 ? COLORS.success : COLORS.error }]}>
-              {tx.amount > 0 ? '+' : ''}{t('sdg')} {Math.abs(tx.amount).toLocaleString()}
+        
+        {loadingTx ? (
+          <ActivityIndicator color={COLORS.primary} size="large" style={{ marginTop: 20 }} />
+        ) : transactions.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Clock color={COLORS.outlineVariant} size={32} />
+            <Text style={styles.emptyText}>
+              {isRTL ? 'لا توجد معاملات بعد' : 'No transactions yet'}
             </Text>
           </View>
-        ))}
+        ) : (
+          transactions.map((tx: any) => (
+            <View key={tx._id} style={styles.txItem}>
+              <View style={[styles.txIcon, { backgroundColor: tx.type === 'credit' ? '#e8f5e9' : '#fef2f2' }]}>
+                {tx.type === 'credit' ? (
+                  <ArrowDownCircle color={COLORS.success} size={20} />
+                ) : (
+                  <ArrowUpCircle color={COLORS.error} size={20} />
+                )}
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.txDesc, isRTL && styles.textRight]}>{tx.description}</Text>
+                <Text style={[styles.txTime, isRTL && styles.textRight]}>{formatTime(tx.createdAt)}</Text>
+              </View>
+              <Text style={[styles.txAmount, { color: tx.type === 'credit' ? COLORS.success : COLORS.error }]}>
+                {tx.type === 'credit' ? '+' : '-'}{t('sdg')} {Math.abs(tx.amount).toLocaleString()}
+              </Text>
+            </View>
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -147,6 +208,10 @@ const styles = StyleSheet.create({
   submitBtn: { backgroundColor: COLORS.primary, paddingVertical: SPACING.lg, borderRadius: RADIUS.xl, alignItems: 'center', marginBottom: SPACING.md },
   submitBtnText: { color: COLORS.onPrimary, fontWeight: 'bold', fontSize: FONT_SIZES.md },
   topUpNote: { fontSize: FONT_SIZES.xs, color: COLORS.onSurfaceVariant, textAlign: 'center' },
+
+  // Empty state
+  emptyState: { alignItems: 'center', paddingVertical: 40 },
+  emptyText: { fontSize: FONT_SIZES.md, color: COLORS.onSurfaceVariant, marginTop: SPACING.md },
 
   // Transactions
   sectionTitle: { fontSize: FONT_SIZES.lg, fontWeight: 'bold', color: COLORS.onSurface, marginBottom: SPACING.lg },

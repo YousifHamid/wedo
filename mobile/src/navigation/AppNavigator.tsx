@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import useAuthStore from '../store/useAuthStore';
+import { connectSocket, disconnectSocket } from '../services/socket';
 
 // Auth Screens
 import WelcomeScreen from '../screens/Auth/WelcomeScreen';
@@ -8,7 +9,6 @@ import FastIntroScreen from '../screens/Auth/FastIntroScreen';
 import LoginScreen from '../screens/Auth/LoginScreen';
 import SignUpScreen from '../screens/Auth/SignUpScreen';
 import ProfileScreen from '../screens/Auth/ProfileScreen';
-import DemoScreen from '../screens/Auth/DemoScreen';
 
 // Rider Screens
 import UserHomeScreen from '../screens/User/UserHomeScreen';
@@ -26,6 +26,16 @@ const Stack = createStackNavigator();
 export default function AppNavigator() {
   const { user, token } = useAuthStore();
 
+  // Auto-connect socket when logged in, disconnect on logout
+  useEffect(() => {
+    if (token && user) {
+      connectSocket();
+    } else {
+      disconnectSocket();
+    }
+    return () => disconnectSocket();
+  }, [token, user]);
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!token || !user ? (
@@ -34,11 +44,9 @@ export default function AppNavigator() {
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="SignUp" component={SignUpScreen} />
-          <Stack.Screen name="Demo" component={DemoScreen} />
         </>
       ) : (
         <>
-          <Stack.Screen name="Demo" component={DemoScreen} />
           {user?.role === 'driver' ? (
             <>
               <Stack.Screen name="DriverHome" component={DriverHomeScreen} />

@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { Car, UserCheck, ChevronRight, Languages, MapPin, Eye, Layout } from 'lucide-react-native';
+import { Car, UserCheck, ChevronRight, Languages, MapPin } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import useAuthStore from '../../store/useAuthStore';
 import '../../i18n';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
 
@@ -11,7 +10,6 @@ const { width } = Dimensions.get('window');
 export default function WelcomeScreen({ navigation }: any) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
-  const setMockUser = useAuthStore(state => state.setMockUser);
 
   const toggleLanguage = () => {
     const nextLng = i18n.language === 'ar' ? 'en' : 'ar';
@@ -26,16 +24,10 @@ export default function WelcomeScreen({ navigation }: any) {
       <View style={styles.topSection}>
         <View style={[styles.headerRow, isRTL && { flexDirection: 'row-reverse' }]}>
            <Text style={[styles.brand, { color: '#000000' }]}>Wedo</Text>
-           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-             <TouchableOpacity onPress={() => navigation.navigate('Demo')} style={[styles.langBtn, { marginRight: 8, backgroundColor: COLORS.surfaceContainerHigh }]}>
-                <Layout size={18} color={COLORS.info} />
-                <Text style={[styles.langBtnText, { color: COLORS.info }]}>Demo</Text>
-             </TouchableOpacity>
-             <TouchableOpacity onPress={toggleLanguage} style={styles.langBtn}>
-                <Languages size={18} color={COLORS.primary} />
-                <Text style={styles.langBtnText}>{i18n.language === 'ar' ? 'EN' : 'عربي'}</Text>
-             </TouchableOpacity>
-           </View>
+           <TouchableOpacity onPress={toggleLanguage} style={styles.langBtn}>
+              <Languages size={18} color={COLORS.primary} />
+              <Text style={styles.langBtnText}>{i18n.language === 'ar' ? 'EN' : 'عربي'}</Text>
+           </TouchableOpacity>
         </View>
         <Text style={[styles.tagline, isRTL && styles.textRight]}>{t('start_safe_trip')}</Text>
       </View>
@@ -73,32 +65,6 @@ export default function WelcomeScreen({ navigation }: any) {
       </View>
 
       <View style={styles.footer}>
-          <View style={styles.mockReviewRow}>
-            <TouchableOpacity 
-              style={styles.reviewBtn}
-              onPress={() => {
-                setMockUser('rider');
-                setTimeout(() => {
-                  navigation.reset({ index: 0, routes: [{ name: 'UserHome' }] });
-                }, 100);
-              }}
-            >
-              <Eye size={16} color={COLORS.primary} />
-              <Text style={styles.reviewBtnText}>{isRTL ? 'معاينة كراكب' : 'Review Rider'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.reviewBtn, { marginLeft: 10 }]}
-              onPress={() => {
-                setMockUser('driver');
-                setTimeout(() => {
-                  navigation.reset({ index: 0, routes: [{ name: 'DriverHome' }] });
-                }, 100);
-              }}
-            >
-              <Eye size={16} color={COLORS.success} />
-              <Text style={[styles.reviewBtnText, { color: COLORS.success }]}>{isRTL ? 'معاينة ككابتن' : 'Review Captain'}</Text>
-            </TouchableOpacity>
-          </View>
           <Text style={styles.footerText}>{t('terms_notice')}</Text>
       </View>
     </View>
@@ -134,8 +100,5 @@ const styles = StyleSheet.create({
   roleTitle: { fontSize: FONT_SIZES.xl, fontWeight: 'bold', color: COLORS.onSurface },
   roleSub: { fontSize: FONT_SIZES.sm, color: COLORS.onSurfaceVariant, marginTop: 4 },
   footer: { paddingVertical: SPACING.xl, alignItems: 'center' },
-  mockReviewRow: { flexDirection: 'row', marginBottom: SPACING.lg },
-  reviewBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceContainerLow, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderRadius: RADIUS.md, ...SHADOWS.sm },
-  reviewBtnText: { marginLeft: 6, fontSize: FONT_SIZES.xs, fontWeight: '600', color: COLORS.primary },
   footerText: { fontSize: FONT_SIZES.xs, color: COLORS.outlineVariant },
 });

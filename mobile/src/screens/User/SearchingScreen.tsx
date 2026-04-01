@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions, Alert } from 'react-native';
 import { Target, Phone, MessageSquare, X, Bell } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import useTripStore from '../../store/useTripStore';
+import api from '../../services/api';
+import { getSocket } from '../../services/socket';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
 
 const { width } = Dimensions.get('window');
@@ -10,24 +12,12 @@ const { width } = Dimensions.get('window');
 export default function SearchingScreen({ navigation }: any) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
-  const { pickupZone, dropoffZone, fareEstimate, vehicleType, setTripStatus, setAssignedDriver, resetTrip } = useTripStore();
+  const { pickupZone, dropoffZone, fareEstimate, vehicleType, setTripStatus, setAssignedDriver, setCurrentTrip, resetTrip } = useTripStore();
   
   const [phase, setPhase] = useState<'searching' | 'assigned'>('searching');
+  const [assignedDriverData, setAssignedDriverData] = useState<any>(null);
   const pulseAnim = useRef(new Animated.Value(0.3)).current;
   const slideAnim = useRef(new Animated.Value(300)).current;
-
-  // Mock driver data
-  const mockDriver = {
-    name: 'Ahmed K.',
-    nameAr: 'أحمد ك.',
-    rating: 4.9,
-    trips: '1.2k',
-    vehicle: 'Toyota Corolla',
-    color: 'Silver',
-    year: '2022',
-    plateNumber: 'KH-8821',
-    eta: 5,
-  };
 
   useEffect(() => {
     // Pulse animation
@@ -39,18 +29,81 @@ export default function SearchingScreen({ navigation }: any) {
     );
     pulse.start();
 
-    // Simulate driver assignment after 4 seconds
-    const timer = setTimeout(() => {
-      setPhase('assigned');
-      setAssignedDriver(mockDriver);
-      setTripStatus('assigned');
-      Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 50, friction: 9 }).start();
-    }, 4000);
+    // Request trip via API
+    const requestTrip = async () => {
+      try {
+        const response = await api.post('/trip/request', {
+          pickupZoneId: pickupZone?._id,
+          dropoffZoneId: dropoffZone?._id,
+          vehicleType: vehicleType,
+        });
 
-    return () => { pulse.stop(); clearTimeout(timer); };
+        const { trip, dispatchedTo, driverAssigned } = response.data;
+        setCurrentTrip(trip);
+
+        if (driverAssigned && trip.driver) {
+          // Driver already assigned
+          handleDriverAssigned(trip.driver);
+        }
+        // Otherwise, listen for socket events
+      } catch (error: any) {
+        const msg = error.response?.data?.message;
+        Alert.alert(
+          t('error'),
+          msg || (isRTL ? 'فشل في طلب الرحلة. حاول مرة أخرى.' : 'Failed to request trip. Try again.'),
+          [{ text: 'OK', onPress: () => { resetTrip(); navigation.goBack(); } }]
+        );
+      }
+    };
+
+    requestTrip();
+
+    // Listen for driver assignment via socket
+    const socket = getSocket();
+    if (socket) {
+      socket.on('trip:driver_responded', (data: any) => {
+        if (data.response === 'accepted') {
+          handleDriverAssigned(data);
+        }
+      });
+
+      socket.on('trip:status_updated', (data: any) => {
+        if (data.status === 'accepted') {
+          handleDriverAssigned(data);
+        } else if (data.status === 'cancelled') {
+          Alert.alert(
+            isRTL ? 'تم إلغاء الرحلة' : 'Trip Cancelled',
+            isRTL ? 'لا يوجد سائقين متاحين حاليًا' : 'No drivers available at the moment',
+            [{ text: 'OK', onPress: () => { resetTrip(); navigation.goBack(); } }]
+          );
+        }
+      });
+    }
+
+    return () => {
+      pulse.stop();
+      if (socket) {
+        socket.off('trip:driver_responded');
+        socket.off('trip:status_updated');
+      }
+    };
   }, []);
 
-  const handleCancel = () => {
+  const handleDriverAssigned = (driverData: any) => {
+    setAssignedDriverData(driverData);
+    setAssignedDriver(driverData);
+    setTripStatus('assigned');
+    setPhase('assigned');
+    Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 50, friction: 9 }).start();
+  };
+
+  const handleCancel = async () => {
+    try {
+      const trip = useTripStore.getState().currentTrip;
+      if (trip?._id) {
+        await api.put(`/trip/${trip._id}/status`, { status: 'cancelled' });
+      }
+    } catch (e) {}
     resetTrip();
     navigation.goBack();
   };
@@ -58,6 +111,9 @@ export default function SearchingScreen({ navigation }: any) {
   const handleContinue = () => {
     navigation.navigate('TripStatus');
   };
+
+  const driverName = assignedDriverData?.name || assignedDriverData?.driverName || 'Driver';
+  const driverNameAr = assignedDriverData?.nameAr || driverName;
 
   return (
     <View style={styles.container}>
@@ -123,17 +179,17 @@ export default function SearchingScreen({ navigation }: any) {
               <Text style={[styles.assignedLabel, isRTL && styles.textRight]}>{t('driver_assigned').toUpperCase()}</Text>
               <View style={styles.etaBadge}>
                 <Text style={styles.etaLabel}>{t('eta')}</Text>
-                <Text style={styles.etaValue}>{mockDriver.eta}</Text>
+                <Text style={styles.etaValue}>5</Text>
                 <Text style={styles.etaUnit}>{t('min')}</Text>
               </View>
             </View>
             <View style={styles.driverRow}>
               <View style={styles.driverAvatar}>
-                <Text style={styles.avatarText}>{mockDriver.name.charAt(0)}</Text>
+                <Text style={styles.avatarText}>{driverName.charAt(0)}</Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.driverName}>{isRTL ? mockDriver.nameAr : mockDriver.name}</Text>
-                <Text style={styles.driverRating}>⭐ {mockDriver.rating} ({mockDriver.trips} {t('trips_count')})</Text>
+                <Text style={styles.driverName}>{isRTL ? driverNameAr : driverName}</Text>
+                <Text style={styles.driverRating}>⭐ {assignedDriverData?.reliabilityScore || '4.9'}</Text>
               </View>
             </View>
           </View>
@@ -142,12 +198,16 @@ export default function SearchingScreen({ navigation }: any) {
           <View style={styles.vehicleCard}>
             <View style={{ flex: 1 }}>
               <Text style={styles.vehicleLabel}>{t('vehicle').toUpperCase()}</Text>
-              <Text style={styles.vehicleName}>{mockDriver.vehicle}</Text>
-              <Text style={styles.vehicleDesc}>{mockDriver.color} • {mockDriver.year}</Text>
+              <Text style={styles.vehicleName}>
+                {assignedDriverData?.vehicleDetails?.make} {assignedDriverData?.vehicleDetails?.model}
+              </Text>
+              <Text style={styles.vehicleDesc}>
+                {assignedDriverData?.vehicleDetails?.color} • {assignedDriverData?.vehicleDetails?.year}
+              </Text>
             </View>
             <View style={styles.plateBadge}>
               <Text style={styles.plateLabel}>{t('plate_number').toUpperCase()}</Text>
-              <Text style={styles.plateNumber}>{mockDriver.plateNumber}</Text>
+              <Text style={styles.plateNumber}>{assignedDriverData?.vehicleDetails?.plateNumber || '---'}</Text>
             </View>
           </View>
 
@@ -227,8 +287,6 @@ const styles = StyleSheet.create({
 
   // Actions
   actionRow: { flexDirection: 'row', backgroundColor: COLORS.surfaceContainerLowest, paddingHorizontal: SPACING['2xl'], paddingVertical: SPACING.xl, justifyContent: 'center' },
-  msgBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primary, paddingHorizontal: SPACING['2xl'], paddingVertical: SPACING.lg, borderRadius: RADIUS.lg, flex: 1, justifyContent: 'center', marginRight: SPACING.md },
-  msgBtnText: { color: COLORS.onPrimary, fontWeight: '600', marginLeft: 8 },
   callBtn: { width: 50, height: 50, backgroundColor: COLORS.surfaceContainerHigh, borderRadius: RADIUS.lg, justifyContent: 'center', alignItems: 'center', marginRight: SPACING.md },
   moreBtn: { width: 50, height: 50, backgroundColor: COLORS.surfaceContainerHigh, borderRadius: RADIUS.lg, justifyContent: 'center', alignItems: 'center' },
   trackRow: { backgroundColor: COLORS.surfaceContainerLowest, paddingHorizontal: SPACING['2xl'], paddingVertical: SPACING.lg, paddingBottom: 40 },

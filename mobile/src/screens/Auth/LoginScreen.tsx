@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import useAuthStore from '../../store/useAuthStore';
 import api from '../../services/api';
+import { connectSocket } from '../../services/socket';
 import { Phone, Lock, LogIn, ChevronLeft } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { COLORS, SPACING, RADIUS, FONT_SIZES } from '../../constants/theme';
@@ -12,34 +13,31 @@ export default function LoginScreen({ route, navigation }: any) {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const role = route.params?.role || 'rider';
-  const { setUser, isServerEnabled } = useAuthStore();
+  const { setUser } = useAuthStore();
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    if (isServerEnabled) {
-      setLoading(true);
-      try {
-        const response = await api.post('/auth/login', { phone, password, role });
-        setUser(response.data.user, response.data.token);
-      } catch (error: any) {
-        Alert.alert(t('error'), isRTL ? 'فشل تسجيل الدخول: تأكد من تشغيل الخادم والبيانات الصحيحة' : 'Login failed: Check server connection & credentials');
-      } finally {
-        setLoading(false);
-      }
+    if (!phone.trim() || !password.trim()) {
+      Alert.alert(t('error'), isRTL ? 'يرجى ملء جميع الحقول' : 'Please fill in all fields');
       return;
     }
 
-    // Demo Mode: Always succeed locally
-    const mockData = { 
-      _id: 'mock_123', 
-      name: isRTL ? 'أحمد محمد' : 'Ahmed Mohamed', 
-      phone: phone || '0912345678', 
-      role: role,
-      walletBalance: role === 'driver' ? 2500 : 5000,
-      token: 'mock_token_abc' 
-    };
-    
-    setUser(mockData as any, mockData.token);
+    setLoading(true);
+    try {
+      const response = await api.post('/auth/login', { phone, password, role });
+      const { user, token } = response.data;
+      setUser(user, token);
+      // Connect socket after successful login
+      connectSocket();
+    } catch (error: any) {
+      const msg = error.response?.data?.message;
+      Alert.alert(
+        t('error'),
+        msg || (isRTL ? 'فشل تسجيل الدخول: تأكد من البيانات الصحيحة' : 'Login failed: Check your credentials')
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

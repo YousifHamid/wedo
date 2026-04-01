@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
 import useAuthStore from '../../store/useAuthStore';
+import api from '../../services/api';
 import { useTranslation } from 'react-i18next';
 import WalletBalanceCard from '../../components/WalletBalanceCard';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
@@ -9,14 +10,37 @@ import { Phone, Mail, Car, Settings, LogOut, ChevronLeft, ChevronRight, Star, Wa
 export default function ProfileScreen({ navigation }: any) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
-  const { user, logout } = useAuthStore();
+  const { user, logout, setUser, token } = useAuthStore();
   const isDriver = user?.role === 'driver';
+  const [loading, setLoading] = useState(false);
+
+  // Sync profile data from server on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await api.get('/auth/profile');
+        if (response.data.user) {
+          // Keep the token we have, update user data
+          setUser(response.data.user, token as string);
+        }
+      } catch (e) {
+        console.log('[Wedo] Profile sync failed');
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const handleLogout = () => {
     Alert.alert(t('logout'), t('logout_confirm'), [
       { text: t('cancel'), style: 'cancel' },
       { text: t('logout'), onPress: () => logout(), style: 'destructive' },
     ]);
+  };
+
+  const getRelativeValue = (val: number | undefined) => {
+    if (val === undefined || val === null) return '0';
+    if (val >= 1000) return (val / 1000).toFixed(1) + 'k';
+    return val.toString();
   };
 
   return (
@@ -57,26 +81,26 @@ export default function ProfileScreen({ navigation }: any) {
         />
       </View>
 
-      {/* Stats */}
+      {/* Stats - Real data from user object */}
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
           <Star color="#f59e0b" fill="#f59e0b" size={20} />
-          <Text style={styles.statValue}>4.92</Text>
+          <Text style={styles.statValue}>{user?.reliabilityScore ? (user.reliabilityScore / 20).toFixed(2) : '5.00'}</Text>
           <Text style={styles.statLabel}>{t('rating')}</Text>
         </View>
         <View style={[styles.statItem, styles.statDivider]}>
-          <Text style={styles.statValue}>{isDriver ? '254' : '48'}</Text>
+          <Text style={styles.statValue}>{user?.totalTrips || 0}</Text>
           <Text style={styles.statLabel}>{isDriver ? t('trips_count') : t('rides_count')}</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: COLORS.success }]}>
-            {t('sdg')} {isDriver ? '154.2k' : '24.5k'}
+            {t('sdg')} {getRelativeValue(isDriver ? user?.totalEarnings : 0)}
           </Text>
           <Text style={styles.statLabel}>{isDriver ? t('total_earnings') : t('spent')}</Text>
         </View>
       </View>
 
-      {/* Quick Actions — Driver: Wallet, Trips | Rider: Trips, Wallet */}
+      {/* Quick Actions */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>
           {isRTL ? 'الوصول السريع' : 'Quick Access'}
@@ -98,15 +122,6 @@ export default function ProfileScreen({ navigation }: any) {
             <Text style={styles.actionLabel}>{t('tab_trips')}</Text>
             <ChevronRight color={COLORS.outlineVariant} size={18} />
           </TouchableOpacity>
-          {isDriver && (
-            <TouchableOpacity style={styles.actionCard}>
-              <View style={[styles.actionIcon, { backgroundColor: '#e3f2fd' }]}>
-                <TrendingUp color={COLORS.info} size={24} />
-              </View>
-              <Text style={styles.actionLabel}>{t('daily_performance')}</Text>
-              <ChevronRight color={COLORS.outlineVariant} size={18} />
-            </TouchableOpacity>
-          )}
         </View>
       </View>
 
@@ -117,14 +132,14 @@ export default function ProfileScreen({ navigation }: any) {
           <View style={styles.infoRow}>
             <View style={styles.iconBox}><Mail color={COLORS.onSurfaceVariant} size={20} /></View>
             <View style={styles.infoContent}>
-              <Text style={[styles.infoValue, isRTL && { textAlign: 'right' }]}>{user?.email || 'user@wedo.sd'}</Text>
+              <Text style={[styles.infoValue, isRTL && { textAlign: 'right' }]}>{user?.email || '---'}</Text>
               <Text style={[styles.infoLabel, isRTL && { textAlign: 'right' }]}>{t('email_address')}</Text>
             </View>
           </View>
           <View style={[styles.infoRow, { borderTopWidth: 1, borderColor: COLORS.surfaceContainerLow }]}>
             <View style={styles.iconBox}><Phone color={COLORS.onSurfaceVariant} size={20} /></View>
             <View style={styles.infoContent}>
-              <Text style={[styles.infoValue, isRTL && { textAlign: 'right' }]}>{user?.phone || '+249 91 234 5678'}</Text>
+              <Text style={[styles.infoValue, isRTL && { textAlign: 'right' }]}>{user?.phone}</Text>
               <Text style={[styles.infoLabel, isRTL && { textAlign: 'right' }]}>{t('phone_label')}</Text>
             </View>
           </View>
@@ -132,19 +147,18 @@ export default function ProfileScreen({ navigation }: any) {
       </View>
 
       {/* Vehicle (driver only) */}
-      {isDriver && (
+      {isDriver && user?.vehicleDetails && (
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>{t('vehicle_details')}</Text>
-          <TouchableOpacity style={styles.infoCard}>
+          <View style={styles.infoCard}>
             <View style={styles.infoRow}>
               <View style={styles.iconBox}><Car color={COLORS.onSurfaceVariant} size={20} /></View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoValue}>Toyota Corolla 2022</Text>
-                <Text style={styles.infoLabel}>Grey • Plate: ABC-1234</Text>
+                <Text style={styles.infoValue}>{user.vehicleDetails.make} {user.vehicleDetails.model} {user.vehicleDetails.year}</Text>
+                <Text style={styles.infoLabel}>{user.vehicleDetails.color} • Plate: {user.vehicleDetails.plateNumber}</Text>
               </View>
-              <ChevronRight color={COLORS.outlineVariant} size={20} />
             </View>
-          </TouchableOpacity>
+          </View>
         </View>
       )}
 

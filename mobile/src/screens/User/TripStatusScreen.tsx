@@ -1,43 +1,89 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
 import { Navigation, Phone, MapPin, ChevronRight } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import useTripStore from '../../store/useTripStore';
+import { getSocket } from '../../services/socket';
+import api from '../../services/api';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
 
 export default function TripStatusScreen({ navigation }: any) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
-  const { pickupZone, dropoffZone, fareEstimate, assignedDriver, setTripStatus, resetTrip } = useTripStore();
-  const [tripPhase, setTripPhase] = useState<'en_route_pickup' | 'arrived' | 'in_progress'>('en_route_pickup');
+  const { pickupZone, dropoffZone, fareEstimate, assignedDriver, currentTrip, setTripStatus, resetTrip } = useTripStore();
+  const [tripPhase, setTripPhase] = useState<'en_route_pickup' | 'arrived' | 'in_progress' | 'completed'>(
+    (currentTrip?.status as any) || 'en_route_pickup'
+  );
 
   const getZoneLabel = (zone: any) => isRTL ? zone?.nameAr : zone?.name;
 
-  const handleNextPhase = () => {
-    if (tripPhase === 'en_route_pickup') {
-      setTripPhase('arrived');
-    } else if (tripPhase === 'arrived') {
-      setTripPhase('in_progress');
-    } else {
-      setTripStatus('completed');
-      navigation.navigate('TripComplete');
-    }
-  };
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    // Listen for trip status updates from the driver/server
+    socket.on('trip:status_updated', (data: any) => {
+      console.log('[Wedo] Trip status updated:', data.status);
+      if (data.status === 'arrived') {
+        setTripPhase('arrived');
+      } else if (data.status === 'active') {
+        setTripPhase('in_progress');
+      } else if (data.status === 'completed') {
+        setTripPhase('completed');
+        setTripStatus('completed');
+        navigation.navigate('TripComplete');
+      } else if (data.status === 'cancelled') {
+        Alert.alert(
+          isRTL ? 'تم إلغاء الرحلة' : 'Trip Cancelled',
+          isRTL ? 'نعتذر، تم إلغاء هذه الرحلة.' : 'Sorry, this trip has been cancelled.',
+          [{ text: 'OK', onPress: () => { resetTrip(); navigation.navigate('UserHome'); } }]
+        );
+      }
+    });
+
+    return () => {
+      socket.off('trip:status_updated');
+    };
+  }, []);
 
   const getStatusLabel = () => {
     switch (tripPhase) {
       case 'en_route_pickup': return t('driver_arriving');
       case 'arrived': return t('arrived_pickup');
       case 'in_progress': return t('en_route');
+      case 'completed': return t('trip_complete');
+      default: return t('driver_arriving');
     }
   };
 
-  const getActionLabel = () => {
-    switch (tripPhase) {
-      case 'en_route_pickup': return t('arrived_pickup');
-      case 'arrived': return t('start_trip');
-      case 'in_progress': return t('complete_trip');
-    }
+  const handleCall = () => {
+    // In a real app, use Linking to dial
+    Alert.alert(t('call_driver'), `${t('phone_label')}: ${assignedDriver?.phone || '---'}`);
+  };
+
+  const handleCancel = () => {
+    Alert.alert(
+      isRTL ? 'إلغاء الرحلة' : 'Cancel Trip',
+      isRTL ? 'هل أنت متأكد من إلغاء الرحلة؟' : 'Are you sure you want to cancel the trip?',
+      [
+        { text: t('cancel'), style: 'cancel' },
+        { 
+          text: isRTL ? 'نعم، إلغاء' : 'Yes, Cancel', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (currentTrip?._id) {
+                await api.put(`/trip/${currentTrip._id}/status`, { status: 'cancelled' });
+              }
+              resetTrip();
+              navigation.navigate('UserHome');
+            } catch (e) {
+              Alert.alert('Error', 'Failed to cancel trip');
+            }
+          }
+        }
+      ]
+    );
   };
 
   return (
@@ -64,8 +110,8 @@ export default function TripStatusScreen({ navigation }: any) {
         <View style={styles.progressRow}>
           <View style={styles.progressSteps}>
             <View style={[styles.dot, styles.dotActive]} />
-            <View style={[styles.line, tripPhase !== 'en_route_pickup' && styles.lineActive]} />
-            <View style={[styles.dot, tripPhase !== 'en_route_pickup' && styles.dotActive]} />
+            <View style={[styles.line, (tripPhase === 'arrived' || tripPhase === 'in_progress') && styles.lineActive]} />
+            <View style={[styles.dot, (tripPhase === 'arrived' || tripPhase === 'in_progress') && styles.dotActive]} />
             <View style={[styles.line, tripPhase === 'in_progress' && styles.lineActive]} />
             <View style={[styles.dot, tripPhase === 'in_progress' && styles.dotActive]} />
           </View>
@@ -106,18 +152,22 @@ export default function TripStatusScreen({ navigation }: any) {
             <Text style={styles.avatarText}>{assignedDriver?.name?.charAt(0) || 'A'}</Text>
           </View>
           <View style={{ flex: 1, marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }}>
-            <Text style={styles.driverName}>{isRTL ? assignedDriver?.nameAr : assignedDriver?.name}</Text>
-            <Text style={styles.driverVehicle}>{assignedDriver?.vehicle} • {assignedDriver?.plateNumber}</Text>
+            <Text style={styles.driverName}>{isRTL ? (assignedDriver?.nameAr || assignedDriver?.name) : assignedDriver?.name}</Text>
+            <Text style={styles.driverVehicle}>
+              {assignedDriver?.vehicleDetails?.make} {assignedDriver?.vehicleDetails?.model} • {assignedDriver?.vehicleDetails?.plateNumber}
+            </Text>
           </View>
-          <TouchableOpacity style={styles.callIcon}>
+          <TouchableOpacity style={styles.callIcon} onPress={handleCall}>
             <Phone color={COLORS.onSurface} size={18} />
           </TouchableOpacity>
         </View>
 
-        {/* Action Button */}
-        <TouchableOpacity style={styles.actionBtn} onPress={handleNextPhase}>
-          <Text style={styles.actionBtnText}>{getActionLabel()}</Text>
-        </TouchableOpacity>
+        {/* Cancel Button (only shown if not in progress) */}
+        {tripPhase === 'en_route_pickup' && (
+          <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
+            <Text style={styles.cancelBtnText}>{t('cancel_request')}</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -164,6 +214,6 @@ const styles = StyleSheet.create({
   driverVehicle: { fontSize: FONT_SIZES.sm, color: COLORS.onSurfaceVariant },
   callIcon: { width: 40, height: 40, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceContainerHigh, justifyContent: 'center', alignItems: 'center' },
 
-  actionBtn: { backgroundColor: COLORS.primary, paddingVertical: SPACING.xl, borderRadius: RADIUS.xl, alignItems: 'center', ...SHADOWS.md },
-  actionBtnText: { color: COLORS.onPrimary, fontSize: FONT_SIZES.lg, fontWeight: 'bold' },
+  cancelBtn: { backgroundColor: COLORS.surfaceContainerHigh, paddingVertical: SPACING.xl, borderRadius: RADIUS.xl, alignItems: 'center' },
+  cancelBtnText: { color: COLORS.onSurface, fontSize: FONT_SIZES.md, fontWeight: 'bold' },
 });

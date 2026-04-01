@@ -1,19 +1,33 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
 import { Star, Banknote, CheckCircle } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import useTripStore from '../../store/useTripStore';
+import api from '../../services/api';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
 
 export default function TripCompleteScreen({ navigation }: any) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
-  const { pickupZone, dropoffZone, fareEstimate, assignedDriver, resetTrip } = useTripStore();
+  const { pickupZone, dropoffZone, fareEstimate, currentTrip, resetTrip } = useTripStore();
   const [rating, setRating] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   const getZoneLabel = (zone: any) => isRTL ? zone?.nameAr : zone?.name;
 
-  const handleDone = () => {
+  const handleDone = async () => {
+    if (rating > 0 && currentTrip?._id) {
+       setLoading(true);
+       try {
+         await api.put(`/trip/${currentTrip._id}/rate`, {
+           rating,
+           comment: 'Trip completed successfully'
+         });
+       } catch (e) {
+         console.log('[Wedo] Failed to submit rating');
+       }
+    }
+    
     resetTrip();
     navigation.navigate('UserHome');
   };
@@ -67,8 +81,8 @@ export default function TripCompleteScreen({ navigation }: any) {
         </View>
 
         {/* Done Button */}
-        <TouchableOpacity style={styles.doneBtn} onPress={handleDone}>
-          <Text style={styles.doneBtnText}>{t('done')}</Text>
+        <TouchableOpacity style={styles.doneBtn} onPress={handleDone} disabled={loading}>
+          {loading ? <ActivityIndicator color={COLORS.onPrimary} /> : <Text style={styles.doneBtnText}>{t('done')}</Text>}
         </TouchableOpacity>
       </View>
     </SafeAreaView>

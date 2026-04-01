@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import useAuthStore from '../../store/useAuthStore';
+import api from '../../services/api';
+import { connectSocket } from '../../services/socket';
 import * as Location from 'expo-location';
 import { Phone, Lock, ChevronLeft, UserPlus, User, MapPin } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +16,7 @@ export default function SignUpScreen({ route, navigation }: any) {
   const [password, setPassword] = useState('');
   const [locationGranted, setLocationGranted] = useState(false);
   const [detecting, setDetecting] = useState(false);
+  const [loading, setLoading] = useState(false);
   const role = route.params?.role || 'rider';
   const { setUser } = useAuthStore();
 
@@ -36,7 +39,7 @@ export default function SignUpScreen({ route, navigation }: any) {
   };
 
   const handleSignUp = async () => {
-    if (!name || !phone || !password) {
+    if (!name.trim() || !phone.trim() || !password.trim()) {
       Alert.alert(t('error'), isRTL ? 'يرجى ملء جميع الحقول' : 'Please fill in all fields');
       return;
     }
@@ -44,17 +47,31 @@ export default function SignUpScreen({ route, navigation }: any) {
       Alert.alert(t('error'), t('location_required'));
       return;
     }
+    if (password.length < 6) {
+      Alert.alert(t('error'), isRTL ? 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' : 'Password must be at least 6 characters');
+      return;
+    }
 
-    const mockData = { 
-      _id: 'mock_new_user', 
-      name: name, 
-      phone: phone, 
-      role: role,
-      walletBalance: role === 'driver' ? 0 : 0,
-      token: 'mock_token_register_123' 
-    };
-    
-    setUser(mockData as any, mockData.token);
+    setLoading(true);
+    try {
+      const response = await api.post('/auth/register', {
+        name,
+        phone,
+        password,
+        role,
+      });
+      const { user, token } = response.data;
+      setUser(user, token);
+      connectSocket();
+    } catch (error: any) {
+      const msg = error.response?.data?.message;
+      Alert.alert(
+        t('error'),
+        msg || (isRTL ? 'فشل إنشاء الحساب. حاول مرة أخرى.' : 'Sign up failed. Please try again.')
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -115,9 +132,13 @@ export default function SignUpScreen({ route, navigation }: any) {
             </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.signUpBtn} onPress={handleSignUp}>
-            <Text style={styles.signUpBtnText}>{t('sign_up')}</Text>
-            <UserPlus color={COLORS.onPrimary} size={18} style={{ marginLeft: 10 }} />
+        <TouchableOpacity 
+          style={[styles.signUpBtn, loading && { opacity: 0.7 }]} 
+          onPress={handleSignUp}
+          disabled={loading}
+        >
+            <Text style={styles.signUpBtnText}>{loading ? '...' : t('sign_up')}</Text>
+            {!loading && <UserPlus color={COLORS.onPrimary} size={18} style={{ marginLeft: 10 }} />}
         </TouchableOpacity>
 
         <View style={[styles.footerContainer, isRTL && { flexDirection: 'row-reverse' }]}>
