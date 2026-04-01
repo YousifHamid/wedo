@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-surface": "#191c1d",
+                        "surface-variant": "#e1e3e4",
+                        "primary-fixed": "#8df7c1",
+                        "surface-container": "#edeeef",
+                        "on-error": "#ffffff",
+                        "secondary-container": "#dae1e3",
+                        "outline-variant": "#bdc9c2",
+                        "on-primary-fixed": "#002113",
+                        "on-secondary-container": "#5d6466",
+                        "inverse-primary": "#71dba6",
+                        "surface-container-highest": "#e1e3e4",
+                        "tertiary-fixed-dim": "#ffb4a8",
+                        "secondary-fixed": "#dde4e6",
+                        "tertiary": "#883c31",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#2e3132",
+                        "on-primary-container": "#aaffd1",
+                        "on-tertiary": "#ffffff",
+                        "surface-dim": "#d9dadb",
+                        "surface-container-low": "#f3f4f5",
+                        "tertiary-container": "#a65347",
+                        "secondary": "#586062",
+                        "on-secondary-fixed": "#161d1f",
+                        "surface": "#f8f9fa",
+                        "primary-fixed-dim": "#71dba6",
+                        "outline": "#6e7a74",
+                        "surface-tint": "#006c47",
+                        "on-surface-variant": "#3e4944",
+                        "secondary-fixed-dim": "#c1c8ca",
+                        "surface-bright": "#f8f9fa",
+                        "on-tertiary-container": "#ffe8e5",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#ffdad4",
+                        "surface-container-lowest": "#ffffff",
+                        "on-background": "#191c1d",
+                        "on-tertiary-fixed-variant": "#783026",
+                        "on-secondary-fixed-variant": "#41484a",
+                        "on-tertiary-fixed": "#3e0502",
+                        "primary": "#00603e",
+                        "on-primary-fixed-variant": "#005235",
+                        "primary-container": "#007b52",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "surface-container-high": "#e7e8e9",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#f0f1f2",
+                        "background": "#f8f9fa"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .pulse-ring {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: .5; transform: scale(1.05); }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface font-body text-on-surface min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-slate-50 dark:bg-slate-900 flex justify-between items-center px-6 py-4 w-full docked full-width top-0 z-40">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-high">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Professional headshot of a young man with a friendly expression against a neutral studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvqhYDcO9Tg6Dgfc6ay-T2WK9EsTh8WBM1nH0UUUOg3riKyPsAPLKcqFteQWX2yoskRYKr6hXuiyOpgGH2WbzA-KkxlFaOsl4KablCksqArxd0jFXHwHjvNG8W35YhHseWIqZMJYjj7Y3xAmqevP4Q18wqWKrjXsI570ZfWxIkHNkyOxRdCOl_v5q8SD3V85cu_w5pqghfkBSHIEpjHFY_4xN634om2soNxp_KItkB2O6Ee0F7RsshhTjjhvrw35YUrwyFWR8--A4"/>
+</div>
+<h1 class="font-['Plus_Jakarta_Sans'] font-bold text-lg tracking-tight text-emerald-900 dark:text-emerald-400">Resilient Mobility</h1>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[10px] font-bold tracking-widest text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">ONLINE</span>
+<button class="material-symbols-outlined text-slate-500 hover:bg-slate-100 p-2 rounded-full transition-colors active:scale-95 duration-150">notifications</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 relative flex flex-col">
+<!-- Map Background (Placeholder) -->
+<div class="absolute inset-0 z-0">
+<div class="w-full h-full bg-surface-container">
+<img class="w-full h-full object-cover opacity-60 grayscale-[20%]" data-alt="Modern satellite map view of a desert city with river crossing and organized urban grid layout" data-location="Khartoum" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxaxGkkze-cDGdppSBqlH30Alr2Hfui4JOvdAuKu5_2H-Ezf7g1AEEg5OKMRJwmRnc6e5FNSnCCBdfbrcSyDRjSNxrTHa71hsULMMhjVEgfm15Rl1oHsp7oUTpngsqOl9h54Eoo3SR0PGi5EzvBdrXAKaEk5OuPdOb-aKZYDAlnaCoIXHgLdhYtAM2ZhOv6hOUMgTyya_Joch7ZfNmxokEcux2rbz-P17wOebN_m5f7hRIJdrFWyHFi9Vld99ZQxza3AXSsJyiqOk"/>
+</div>
+</div>
+<!-- Content Overlay -->
+<div class="relative z-10 flex-1 flex flex-col p-6 gap-6">
+<!-- STATE 1: Searching (Bento-style Status Card) -->
+<section class="mt-auto md:mt-0 md:max-w-md w-full">
+<div class="bg-white/80 backdrop-blur-md rounded-[2rem] p-6 shadow-[0_8px_32px_rgba(0,96,62,0.12)] border border-white/20">
+<div class="flex items-center justify-between mb-6">
+<div>
+<h2 class="font-headline font-bold text-xl text-primary mb-1">Finding your ride</h2>
+<p class="text-secondary text-sm font-medium">Matching with the best nearby driver</p>
+</div>
+<div class="relative flex items-center justify-center w-12 h-12">
+<div class="absolute inset-0 bg-primary/20 rounded-full pulse-ring"></div>
+<span class="material-symbols-outlined text-primary text-3xl">radar</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low rounded-2xl p-4">
+<span class="text-[10px] font-bold tracking-widest text-secondary block mb-1 uppercase">ESTIMATED PRICE</span>
+<span class="font-headline font-extrabold text-lg text-on-surface">SDG 4,500</span>
+</div>
+<div class="bg-surface-container-low rounded-2xl p-4">
+<span class="text-[10px] font-bold tracking-widest text-secondary block mb-1 uppercase">VEHICLE TYPE</span>
+<span class="font-headline font-extrabold text-lg text-on-surface">Premier Sedan</span>
+</div>
+</div>
+<button class="w-full mt-6 bg-surface-container-highest text-on-surface font-bold py-4 rounded-xl hover:bg-error-container hover:text-error transition-all active:scale-95">
+                        Cancel Request
+                    </button>
+</div>
+</section>
+<!-- STATE 2: Driver Assigned (Floating Premium Card) -->
+<section class="md:max-w-md w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+<div class="bg-surface-container-lowest rounded-[2.5rem] overflow-hidden shadow-[0_24px_48px_rgba(0,0,0,0.1)]">
+<!-- Driver Identity Header (Asymmetric Layout) -->
+<div class="bg-gradient-to-br from-primary to-primary-container p-6 text-on-primary">
+<div class="flex justify-between items-start">
+<div class="flex gap-4 items-center">
+<div class="w-16 h-16 rounded-2xl overflow-hidden border-2 border-primary-fixed shadow-lg rotate-3">
+<img alt="Driver Ahmed" class="w-full h-full object-cover -rotate-3 scale-110" data-alt="Portrait of a smiling middle-aged man with short hair, wearing a clean polo shirt, warm cinematic lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdkNVJYuTFZ1PVluw-binbE64gmNvaZIggtkM0fp0cw6VZGdSnfcJTqpP0RSkjCOEJsmhJVvoa2IssGCxKXrWXlhZS9gO4YWT1AE4T3DIPOIrCKrZwiO3tL6p6xyx8khN554H4zAPkG_edXSJLbc46BZHOWhe5JVSFcTL4ueXozV8rt30cvnYaE-FW_sE8vWaaT7GrfPa4D-qbGggWY6cw5c_ls8vOtACf3ugBm3vGF0P2xh89SPduWlgFj5BNFGRnCdmn7CijFzk"/>
+</div>
+<div>
+<span class="text-[10px] font-extrabold tracking-[0.2em] text-primary-fixed block uppercase mb-1">DRIVER ASSIGNED</span>
+<h3 class="font-headline font-extrabold text-2xl">Ahmed K.</h3>
+<div class="flex items-center gap-1 mt-0.5">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="text-sm font-bold">4.9</span>
+<span class="text-xs opacity-80 ml-1">(1.2k trips)</span>
+</div>
+</div>
+</div>
+<div class="bg-primary-fixed text-on-primary-fixed px-4 py-2 rounded-2xl text-center">
+<span class="block text-[10px] font-black uppercase tracking-tighter">ETA</span>
+<span class="text-xl font-black">5 <small class="text-xs">MIN</small></span>
+</div>
+</div>
+</div>
+<!-- Vehicle Details & Actions -->
+<div class="p-6">
+<div class="flex items-center justify-between mb-8">
+<div class="flex-1">
+<p class="text-secondary text-xs font-bold uppercase tracking-widest mb-1">Vehicle</p>
+<p class="font-headline font-bold text-lg text-on-surface">Toyota Corolla</p>
+<p class="text-on-surface-variant font-medium">Silver • 2022 Model</p>
+</div>
+<div class="bg-surface-container-high px-5 py-3 rounded-2xl border-l-4 border-primary">
+<p class="text-[10px] font-bold text-secondary uppercase tracking-widest">Plate Number</p>
+<p class="font-headline font-black text-xl tracking-wider text-on-surface">KH-8821</p>
+</div>
+</div>
+<!-- Action Bar (Glassmorphism & High Contrast) -->
+<div class="flex gap-3">
+<button class="flex-1 flex items-center justify-center gap-2 bg-primary text-on-primary font-bold py-4 rounded-2xl shadow-[0_8px_20px_rgba(0,96,62,0.3)] hover:brightness-110 active:scale-95 transition-all">
+<span class="material-symbols-outlined">chat</span>
+<span>Message</span>
+</button>
+<button class="aspect-square bg-surface-container-highest text-on-surface flex items-center justify-center p-4 rounded-2xl active:scale-95 transition-all">
+<span class="material-symbols-outlined text-2xl">call</span>
+</button>
+<button class="aspect-square bg-surface-container-highest text-tertiary flex items-center justify-center p-4 rounded-2xl active:scale-95 transition-all">
+<span class="material-symbols-outlined text-2xl">more_horiz</span>
+</button>
+</div>
+<!-- Cash Payment Indicator -->
+<div class="mt-6 flex items-center justify-center gap-2 py-3 px-4 bg-tertiary/10 rounded-xl">
+<span class="material-symbols-outlined text-tertiary text-sm">payments</span>
+<span class="text-tertiary font-bold text-xs tracking-wide uppercase">CASH PAYMENT REQUESTED</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] z-50 rounded-t-3xl">
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 hover:text-emerald-600 dark:hover:text-emerald-300 transition-transform duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined">home_app_logo</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-emerald-100 dark:bg-emerald-900/40 text-emerald-900 dark:text-emerald-100 rounded-2xl px-5 py-2 transition-transform duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">directions_car</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider mt-1">Trips</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 hover:text-emerald-600 dark:hover:text-emerald-300 transition-transform duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider mt-1">Wallet</span>
+</a>
+<a class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 hover:text-emerald-600 dark:hover:text-emerald-300 transition-transform duration-200 active:scale-90" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider mt-1">Profile</span>
+</a>
+</nav>
+<!-- FAB Suppression as per mandate: "suppress the FAB on Details/Transactional screens" -->
+</body></html>

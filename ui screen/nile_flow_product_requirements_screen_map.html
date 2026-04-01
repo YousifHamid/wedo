@@ -1,0 +1,70 @@
+# Project: Nile Flow - Ride-Hailing System (Sudan)
+
+## 1. Overview
+A specialized ride-hailing system for Sudan, optimized for low bandwidth, cash payments, and zone-based pricing. The system consists of three distinct parts: a Rider App, a Driver App, and an Admin Dashboard.
+
+---
+
+## 2. Rider App Flows (Mobile)
+**Goal:** Book a reliable ride using cash, with minimal data usage.
+
+*   **Screen 1: Splash & OTP Login**
+    *   Simple phone number input.
+    *   Fast OTP verification (standard for Sudan).
+*   **Screen 2: Home / Booking (Zone-Based)**
+    *   Pickup and Drop-off selection using a list of predefined zones (not map-dependent).
+    *   Estimated fare (fixed zone-to-zone price).
+    *   "Request Ride" button (Cash payment only).
+*   **Screen 3: Searching & Driver Assigned**
+    *   Animation for searching.
+    *   Once assigned: Driver name, car model, plate number, and ETA.
+    *   Call driver button.
+*   **Screen 4: Trip in Progress & Completion**
+    *   Simple status: "En route to destination."
+    *   Completion screen with final fare (to be paid in cash) and rating.
+
+---
+
+## 3. Driver App Flows (Mobile)
+**Goal:** Accept trips and manage a prepaid wallet.
+
+*   **Screen 1: Dashboard & Go Online**
+    *   Toggle for Online/Offline status.
+    *   Current wallet balance (must be > 0 to receive trips).
+    *   Quick link to Top-up wallet.
+*   **Screen 2: Incoming Trip Request**
+    *   15-second timer to accept.
+    *   Pickup and Drop-off zones.
+    *   Expected fare and commission deduction.
+*   **Screen 3: Active Trip Management**
+    *   "Arrived at Pickup" button.
+    *   "Start Trip" and "Complete Trip" buttons.
+    *   Navigation link (Google Maps/Waze).
+*   **Screen 4: Wallet & Earnings**
+    *   Detailed transaction history (Trips, Commissions, Top-ups).
+    *   Instructions for manual cash top-ups at designated centers.
+
+---
+
+## 4. Admin Dashboard (Desktop)
+**Goal:** Manage zones, drivers, and wallet top-ups.
+
+*   **Screen 1: Overview & Stats**
+    *   Active trips, online drivers, total revenue (commission).
+    *   Real-time system health monitor.
+*   **Screen 2: Driver Management**
+    *   List of all drivers with status (Active, Blocked, Pending Approval).
+    *   Approval workflow for new drivers.
+*   **Screen 3: Wallet Top-up Approvals**
+    *   Queue of driver top-up requests (Cash deposits).
+    *   Approve/Reject buttons to update driver balances.
+*   **Screen 4: Zone & Pricing Management**
+    *   Define zones and set fixed prices between them.
+    *   Manage commission rates.
+
+---
+
+## 5. Technical Considerations
+*   **Matching Engine:** Sequential dispatch (requests the nearest driver first, then the next).
+*   **Wallet Logic:** Commissions are automatically deducted after every trip. If the balance reaches 0, the driver is automatically toggled offline.
+*   **Low Bandwidth:** Minimal images, optimized API calls, and heavy caching of zone data.

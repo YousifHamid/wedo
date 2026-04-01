@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Wedo",
+    "slug": "namshi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/playstore.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff",
+        "foregroundImage": "./assets/playstore.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.yousif.hamid2.namshi"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e2b5cc9b-bdc9-4bf7-ba39-0b6b6e786d8a"
+      }
+    }
+  }
+}

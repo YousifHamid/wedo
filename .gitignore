@@ -1,0 +1,16 @@
+# Root ignores
+**/node_modules/
+**/.expo/
+**/dist/
+**/.env
+**/.env.local
+**/.DS_Store
+**/*.log
+
+# Specific folders
+backend/dist/
+mobile/android/
+mobile/ios/
+mobile/web-build/
+admin/dist/
+admin/build/

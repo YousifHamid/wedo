@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Resilient Mobility | Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "on-surface": "#191c1d",
+                        "surface-variant": "#e1e3e4",
+                        "primary-fixed": "#8df7c1",
+                        "surface-container": "#edeeef",
+                        "on-error": "#ffffff",
+                        "secondary-container": "#dae1e3",
+                        "outline-variant": "#bdc9c2",
+                        "on-primary-fixed": "#002113",
+                        "on-secondary-container": "#5d6466",
+                        "inverse-primary": "#71dba6",
+                        "surface-container-highest": "#e1e3e4",
+                        "tertiary-fixed-dim": "#ffb4a8",
+                        "secondary-fixed": "#dde4e6",
+                        "tertiary": "#883c31",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#2e3132",
+                        "on-primary-container": "#aaffd1",
+                        "on-tertiary": "#ffffff",
+                        "surface-dim": "#d9dadb",
+                        "surface-container-low": "#f3f4f5",
+                        "tertiary-container": "#a65347",
+                        "secondary": "#586062",
+                        "on-secondary-fixed": "#161d1f",
+                        "surface": "#f8f9fa",
+                        "primary-fixed-dim": "#71dba6",
+                        "outline": "#6e7a74",
+                        "surface-tint": "#006c47",
+                        "on-surface-variant": "#3e4944",
+                        "secondary-fixed-dim": "#c1c8ca",
+                        "surface-bright": "#f8f9fa",
+                        "on-tertiary-container": "#ffe8e5",
+                        "on-secondary": "#ffffff",
+                        "tertiary-fixed": "#ffdad4",
+                        "surface-container-lowest": "#ffffff",
+                        "on-background": "#191c1d",
+                        "on-tertiary-fixed-variant": "#783026",
+                        "on-secondary-fixed-variant": "#41484a",
+                        "on-tertiary-fixed": "#3e0502",
+                        "primary": "#00603e",
+                        "on-primary-fixed-variant": "#005235",
+                        "primary-container": "#007b52",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "surface-container-high": "#e7e8e9",
+                        "on-primary": "#ffffff",
+                        "inverse-on-surface": "#f0f1f2",
+                        "background": "#f8f9fa"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .primary-gradient {
+            background: linear-gradient(135deg, #00603e 0%, #007b52 100%);
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex">
+<!-- Sidebar Navigation (Desktop Only Anchor) -->
+<aside class="hidden md:flex flex-col w-72 bg-surface-container-low h-screen sticky top-0 border-r border-outline-variant/10">
+<div class="px-8 py-10">
+<span class="text-xl font-extrabold text-primary tracking-tighter">Resilient Mobility</span>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<a class="flex items-center gap-4 px-4 py-3 bg-primary-fixed text-on-primary-fixed rounded-xl font-semibold transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-headline text-sm tracking-wide">Overview</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-secondary hover:bg-surface-container-high rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+<span class="font-headline text-sm tracking-wide">Approvals</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-secondary hover:bg-surface-container-high rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+<span class="font-headline text-sm tracking-wide">Drivers</span>
+</a>
+<a class="flex items-center gap-4 px-4 py-3 text-secondary hover:bg-surface-container-high rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="monitoring">monitoring</span>
+<span class="font-headline text-sm tracking-wide">Analytics</span>
+</a>
+</nav>
+<div class="p-6 mt-auto">
+<div class="bg-surface-container-highest rounded-2xl p-4 space-y-3">
+<div class="flex items-center justify-between">
+<span class="text-[10px] font-bold uppercase tracking-widest text-secondary">System Health</span>
+<div class="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-[11px]">
+<span class="text-on-surface-variant">Server Latency</span>
+<span class="font-bold">24ms</span>
+</div>
+<div class="w-full bg-outline-variant/30 h-1 rounded-full overflow-hidden">
+<div class="bg-primary w-4/5 h-full"></div>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0 bg-surface overflow-x-hidden">
+<!-- TopAppBar Shared Component -->
+<header class="flex justify-between items-center px-8 py-6 w-full bg-surface-container-lowest sticky top-0 z-30 shadow-sm">
+<div class="flex flex-col">
+<h1 class="font-['Plus_Jakarta_Sans'] font-bold text-2xl tracking-tight text-primary">System Overview</h1>
+<p class="text-secondary text-sm">Real-time mobility orchestration</p>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden lg:flex items-center gap-2 px-4 py-2 bg-surface-container-low rounded-full">
+<span class="material-symbols-outlined text-primary text-sm" data-icon="search">search</span>
+<input class="bg-transparent border-none text-sm focus:ring-0 text-on-surface-variant w-48" placeholder="Search drivers, trips..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<div class="text-right hidden sm:block">
+<p class="text-xs font-bold uppercase tracking-wider text-primary">ONLINE</p>
+<p class="text-sm font-semibold">Admin Panel v2.4</p>
+</div>
+<div class="w-12 h-12 rounded-2xl overflow-hidden border-2 border-primary-fixed">
+<img class="w-full h-full object-cover" data-alt="professional male portrait of system administrator with focused expression against minimal studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDBJ9_kW4pGLERZAw2Zyy3ZEVRGEeEN_xO0A_Fv7xNQ1w0WSjNgq56LMgW2A3RQsAEXAkPRJgDBcAceoFSQScrR416x6zJLs9Xf_FZfUJ6xmDxN8zo3DYsMlf3ozeiQvmQ3N0lTHcvbDfuBs_5UHq7lHMt9elRLln-mMVZT6Wg707cSzhyackdHe9v3AnZQ5Mqx02kkUQq8T91WChamq7qisrKoGsw-KvUJ83kpPREPT3Fbu0HDavOm1SwZC77IUhKHAQHbi1oJ6AE"/>
+</div>
+</div>
+</div>
+</header>
+<section class="p-8 space-y-8">
+<!-- Bento Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+<!-- Stat Card 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-[2rem] border-b-4 border-primary shadow-sm hover:translate-y-[-4px] transition-transform duration-300">
+<div class="flex items-start justify-between mb-4">
+<div class="p-3 bg-primary-fixed rounded-2xl">
+<span class="material-symbols-outlined text-on-primary-fixed" data-icon="route" style="font-variation-settings: 'FILL' 1;">route</span>
+</div>
+<span class="text-[10px] font-bold text-primary bg-primary-fixed/30 px-2 py-1 rounded-md">+12% vs last hr</span>
+</div>
+<p class="text-secondary font-medium text-sm mb-1 uppercase tracking-widest">Active Trips</p>
+<h2 class="text-4xl font-extrabold text-on-surface tracking-tight">1,428</h2>
+</div>
+<!-- Stat Card 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-[2rem] border-b-4 border-primary shadow-sm hover:translate-y-[-4px] transition-transform duration-300">
+<div class="flex items-start justify-between mb-4">
+<div class="p-3 bg-secondary-fixed rounded-2xl">
+<span class="material-symbols-outlined text-on-secondary-fixed" data-icon="hail">hail</span>
+</div>
+<span class="text-[10px] font-bold text-secondary bg-secondary-fixed/50 px-2 py-1 rounded-md">94% Efficiency</span>
+</div>
+<p class="text-secondary font-medium text-sm mb-1 uppercase tracking-widest">Online Drivers</p>
+<h2 class="text-4xl font-extrabold text-on-surface tracking-tight">382</h2>
+</div>
+<!-- Stat Card 3 (Featured) -->
+<div class="md:col-span-2 primary-gradient p-8 rounded-[2rem] text-on-primary shadow-xl relative overflow-hidden flex flex-col justify-between">
+<!-- Background Decoration -->
+<div class="absolute -right-10 -top-10 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
+<div>
+<p class="text-on-primary-container font-bold text-xs uppercase tracking-[0.2em] mb-2 opacity-80">Total Commissions Today</p>
+<h2 class="text-5xl font-black tracking-tighter mb-2">SDG 842,500</h2>
+<p class="text-on-primary-container text-sm font-medium">Goal: 1.2M SDG (70% reached)</p>
+</div>
+<div class="mt-6 flex gap-4">
+<div class="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+<p class="text-[10px] uppercase font-bold opacity-60">Avg. Per Trip</p>
+<p class="text-xl font-bold">590 SDG</p>
+</div>
+<div class="flex-1 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
+<p class="text-[10px] uppercase font-bold opacity-60">Peak Hour Lift</p>
+<p class="text-xl font-bold">+22%</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+<!-- Top-up Requests Table -->
+<div class="lg:col-span-2 bg-surface-container-lowest rounded-[2.5rem] overflow-hidden shadow-sm">
+<div class="px-8 py-6 border-b border-surface-container flex justify-between items-center">
+<div>
+<h3 class="text-xl font-bold">Top-up Requests</h3>
+<p class="text-xs text-secondary font-medium">Pending cash deposit verifications</p>
+</div>
+<button class="text-primary text-sm font-bold hover:underline">View All</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-surface-container-low text-on-surface-variant text-[11px] font-bold uppercase tracking-widest">
+<tr>
+<th class="px-8 py-4">Driver</th>
+<th class="px-8 py-4">Amount</th>
+<th class="px-8 py-4">Reference</th>
+<th class="px-8 py-4 text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="px-8 py-5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center font-bold text-primary">MA</div>
+<div>
+<p class="font-bold text-sm">Mohammed Ahmed</p>
+<p class="text-xs text-secondary">ID: DR-9921</p>
+</div>
+</div>
+</td>
+<td class="px-8 py-5">
+<p class="font-bold text-sm">15,000 SDG</p>
+<p class="text-[10px] text-tertiary font-bold uppercase tracking-tight">CASH DEPOSIT</p>
+</td>
+<td class="px-8 py-5 font-mono text-xs text-secondary">REF-8422-X</td>
+<td class="px-8 py-5 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-2 text-primary hover:bg-primary-fixed rounded-xl transition-all">
+<span class="material-symbols-outlined" data-icon="check_circle">check_circle</span>
+</button>
+<button class="p-2 text-tertiary hover:bg-error-container rounded-xl transition-all">
+<span class="material-symbols-outlined" data-icon="cancel">cancel</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="px-8 py-5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center font-bold text-primary">OK</div>
+<div>
+<p class="font-bold text-sm">Omer Khalid</p>
+<p class="text-xs text-secondary">ID: DR-2204</p>
+</div>
+</div>
+</td>
+<td class="px-8 py-5">
+<p class="font-bold text-sm">25,500 SDG</p>
+<p class="text-[10px] text-tertiary font-bold uppercase tracking-tight">CASH DEPOSIT</p>
+</td>
+<td class="px-8 py-5 font-mono text-xs text-secondary">REF-9011-Z</td>
+<td class="px-8 py-5 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-2 text-primary hover:bg-primary-fixed rounded-xl transition-all">
+<span class="material-symbols-outlined" data-icon="check_circle">check_circle</span>
+</button>
+<button class="p-2 text-tertiary hover:bg-error-container rounded-xl transition-all">
+<span class="material-symbols-outlined" data-icon="cancel">cancel</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="px-8 py-5">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center font-bold text-primary">SB</div>
+<div>
+<p class="font-bold text-sm">Sara Bashir</p>
+<p class="text-xs text-secondary">ID: DR-4412</p>
+</div>
+</div>
+</td>
+<td class="px-8 py-5">
+<p class="font-bold text-sm">8,000 SDG</p>
+<p class="text-[10px] text-tertiary font-bold uppercase tracking-tight">CASH DEPOSIT</p>
+</td>
+<td class="px-8 py-5 font-mono text-xs text-secondary">REF-1123-W</td>
+<td class="px-8 py-5 text-right">
+<div class="flex justify-end gap-2">
+<button class="p-2 text-primary hover:bg-primary-fixed rounded-xl transition-all">
+<span class="material-symbols-outlined" data-icon="check_circle">check_circle</span>
+</button>
+<button class="p-2 text-tertiary hover:bg-error-container rounded-xl transition-all">
+<span class="material-symbols-outlined" data-icon="cancel">cancel</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Sidebar Content: Map & Health -->
+<div class="space-y-8">
+<!-- Live Map Preview -->
+<div class="bg-surface-container-lowest p-4 rounded-[2.5rem] shadow-sm overflow-hidden group">
+<div class="relative h-48 rounded-[1.75rem] overflow-hidden mb-4">
+<img class="w-full h-full object-cover grayscale brightness-50 group-hover:scale-110 transition-transform duration-700" data-alt="high contrast aerial satellite view of an urban city map with traffic heatmap indicators in green and amber" data-location="Khartoum" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDp0AEECSj8nonGTMdnPgkn3pV0wlrBOxlN3x9SWorLKz5R9cFtM33gMR6_yh8lmoS6ng6vUWWmEPFHqWWNZANxstoNpNVsdVaCvtmESDbmFBQAwtAoVEfCqreKfUNCv2IOebqu4nyKWBXMJTru677TS0aIi5oAmAmPZ0BQEIdi1YL_gxZ3aN-AgOxe1LaucFlwfJXl60xMGC56iS6QtkgW_7kiFaDJBsakO21H-A19xxNvFahMYjcd9MLuVHf4qxsybnUqn3ylr4I"/>
+<div class="absolute inset-0 bg-primary/20 mix-blend-multiply"></div>
+<div class="absolute inset-0 flex items-center justify-center">
+<span class="bg-surface-container-lowest px-4 py-2 rounded-full font-bold text-xs shadow-xl flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+                                    Live Traffic
+                                </span>
+</div>
+</div>
+<div class="px-2">
+<h4 class="font-bold text-lg">Khartoum Central</h4>
+<p class="text-sm text-secondary">82 active drivers in this zone</p>
+</div>
+</div>
+<!-- System Health Dashboard -->
+<div class="bg-surface-container-lowest p-8 rounded-[2.5rem] shadow-sm space-y-6">
+<h4 class="font-bold text-lg border-b border-surface-container pb-4">Core Infrastructure</h4>
+<div class="space-y-5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="text-sm font-semibold">API Gateway</span>
+</div>
+<span class="text-xs font-bold text-primary bg-primary-fixed px-2 py-0.5 rounded">STABLE</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="text-sm font-semibold">Database Master</span>
+</div>
+<span class="text-xs font-bold text-primary bg-primary-fixed px-2 py-0.5 rounded">STABLE</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></div>
+<span class="text-sm font-semibold">SMS Gateway</span>
+</div>
+<span class="text-xs font-bold text-tertiary bg-tertiary-fixed px-2 py-0.5 rounded">RETRIED</span>
+</div>
+</div>
+<div class="pt-4">
+<button class="w-full py-3 bg-surface-container-high text-on-surface font-bold rounded-2xl hover:bg-surface-container-highest transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="terminal">terminal</span>
+                                Open System Console
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Margin for Shell Logic -->
+<div class="h-12"></div>
+</main>
+<!-- Bottom Navigation Bar (Mobile Only Anchor) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-100 z-50 rounded-t-3xl shadow-[0_-4px_24px_rgba(0,0,0,0.06)]">
+<div class="flex flex-col items-center justify-center bg-emerald-100 dark:bg-emerald-900/40 text-emerald-900 dark:text-emerald-100 rounded-2xl px-5 py-2 active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="home_app_logo">home_app_logo</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 hover:text-emerald-600 active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider">Trips</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 hover:text-emerald-600 active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider">Wallet</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 px-5 py-2 hover:text-emerald-600 active:scale-90 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-['Inter'] text-[11px] font-semibold uppercase tracking-wider">Profile</span>
+</div>
+</nav>
+</body></html>
