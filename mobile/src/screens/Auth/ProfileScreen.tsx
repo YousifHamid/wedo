@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import useAuthStore from '../../store/useAuthStore';
 import api from '../../services/api';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +14,7 @@ export default function ProfileScreen({ navigation }: any) {
   const { user, logout, setUser, token } = useAuthStore();
   const isDriver = user?.role === 'driver';
   const [loading, setLoading] = useState(false);
+  const [localAvatar, setLocalAvatar] = useState<string | null>(null);
 
   // Sync profile data from server on mount
   useEffect(() => {
@@ -37,6 +39,24 @@ export default function ProfileScreen({ navigation }: any) {
     ]);
   };
 
+  const handlePickAvatar = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+
+      if (!result.canceled) {
+        setLocalAvatar(result.assets[0].uri);
+        // Ideally: await api.put('/users/avatar', formData) then update useAuthStore user.
+      }
+    } catch (e) {
+      Alert.alert(isRTL ? 'خطأ' : 'Error', isRTL ? 'تحتاج إلى تثبيت مكتبة الصور أولاً.' : 'Image Picker is required.');
+    }
+  };
+
   const getRelativeValue = (val: number | undefined) => {
     if (val === undefined || val === null) return '0';
     if (val >= 1000) return (val / 1000).toFixed(1) + 'k';
@@ -58,10 +78,10 @@ export default function ProfileScreen({ navigation }: any) {
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
           <Image
-            source={{ uri: `https://ui-avatars.com/api/?name=${user?.name}&background=00603e&color=fff&size=128` }}
+            source={{ uri: localAvatar || user?.profilePicture || `https://ui-avatars.com/api/?name=${user?.name}&background=00603e&color=fff&size=128` }}
             style={styles.avatar}
           />
-          <TouchableOpacity style={styles.editBtn}>
+          <TouchableOpacity style={styles.editBtn} onPress={handlePickAvatar}>
             <Settings color="#fff" size={16} />
           </TouchableOpacity>
         </View>
@@ -107,20 +127,20 @@ export default function ProfileScreen({ navigation }: any) {
         </Text>
         <View style={styles.actionGrid}>
           {isDriver && (
-            <TouchableOpacity style={styles.actionCard} onPress={() => navigation.navigate('DriverWallet')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#e8f5e9' }]}>
+            <TouchableOpacity style={[styles.actionCard, isRTL && { flexDirection: 'row-reverse' }]} onPress={() => navigation.navigate('DriverWallet')}>
+              <View style={[styles.actionIcon, { backgroundColor: '#e8f5e9' }, isRTL && { marginRight: 0, marginLeft: 14 }]}>
                 <Wallet color={COLORS.primary} size={24} />
               </View>
-              <Text style={styles.actionLabel}>{t('tab_wallet')}</Text>
-              <ChevronRight color={COLORS.outlineVariant} size={18} />
+              <Text style={[styles.actionLabel, isRTL && { textAlign: 'right' }]}>{t('tab_wallet')}</Text>
+              {isRTL ? <ChevronLeft color={COLORS.outlineVariant} size={18} /> : <ChevronRight color={COLORS.outlineVariant} size={18} />}
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.actionCard}>
-            <View style={[styles.actionIcon, { backgroundColor: '#fff3e0' }]}>
+          <TouchableOpacity style={[styles.actionCard, isRTL && { flexDirection: 'row-reverse' }]}>
+            <View style={[styles.actionIcon, { backgroundColor: '#fff3e0' }, isRTL && { marginRight: 0, marginLeft: 14 }]}>
               <Clock color={COLORS.warning} size={24} />
             </View>
-            <Text style={styles.actionLabel}>{t('tab_trips')}</Text>
-            <ChevronRight color={COLORS.outlineVariant} size={18} />
+            <Text style={[styles.actionLabel, isRTL && { textAlign: 'right' }]}>{t('tab_trips')}</Text>
+            {isRTL ? <ChevronLeft color={COLORS.outlineVariant} size={18} /> : <ChevronRight color={COLORS.outlineVariant} size={18} />}
           </TouchableOpacity>
         </View>
       </View>
@@ -129,15 +149,15 @@ export default function ProfileScreen({ navigation }: any) {
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>{t('account_info')}</Text>
         <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <View style={styles.iconBox}><Mail color={COLORS.onSurfaceVariant} size={20} /></View>
+          <View style={[styles.infoRow, isRTL && { flexDirection: 'row-reverse' }]}>
+            <View style={[styles.iconBox, isRTL && { marginRight: 0, marginLeft: 14 }]}><Mail color={COLORS.onSurfaceVariant} size={20} /></View>
             <View style={styles.infoContent}>
               <Text style={[styles.infoValue, isRTL && { textAlign: 'right' }]}>{user?.email || '---'}</Text>
               <Text style={[styles.infoLabel, isRTL && { textAlign: 'right' }]}>{t('email_address')}</Text>
             </View>
           </View>
-          <View style={[styles.infoRow, { borderTopWidth: 1, borderColor: COLORS.surfaceContainerLow }]}>
-            <View style={styles.iconBox}><Phone color={COLORS.onSurfaceVariant} size={20} /></View>
+          <View style={[styles.infoRow, { borderTopWidth: 1, borderColor: COLORS.surfaceContainerLow }, isRTL && { flexDirection: 'row-reverse' }]}>
+            <View style={[styles.iconBox, isRTL && { marginRight: 0, marginLeft: 14 }]}><Phone color={COLORS.onSurfaceVariant} size={20} /></View>
             <View style={styles.infoContent}>
               <Text style={[styles.infoValue, isRTL && { textAlign: 'right' }]}>{user?.phone}</Text>
               <Text style={[styles.infoLabel, isRTL && { textAlign: 'right' }]}>{t('phone_label')}</Text>

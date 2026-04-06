@@ -4,35 +4,63 @@
     "slug": "namshi",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/playstore.png",
+    "icon": "./assets/appstore.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "ios": {
-      "supportsTablet": true
-    },
     "android": {
       "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.RECORD_AUDIO"
       ],
-      "adaptiveIcon": {
-        "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/playstore.png"
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY_HERE"
+        }
       },
-      "predictiveBackGestureEnabled": false,
-      "package": "com.yousif.hamid2.namshi"
+      "adaptiveIcon": {
+        "backgroundColor": "#2AA84A",
+        "foregroundImage": "./assets/appstore.png"
+      },
+      "package": "com.wedo.app"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.wedo.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Wedo needs your location to find nearby drivers and provide accurate pickup points.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Wedo needs background location to track your trip and ensure safety even when the app is minimized.",
+        "NSLocationAlwaysUsageDescription": "Wedo needs background location to notify you of trip status and for driver tracking.",
+        "UIBackgroundModes": [
+          "location",
+          "fetch",
+          "location",
+          "fetch"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "extra": {
       "eas": {
         "projectId": "e2b5cc9b-bdc9-4bf7-ba39-0b6b6e786d8a"
       }
-    }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-location",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Wedo needs access to your camera roll to upload your profile picture.",
+          "cameraPermission": "Wedo needs access to your camera to take your profile picture."
+        }
+      ]
+    ]
   }
 }

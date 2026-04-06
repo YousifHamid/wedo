@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import Trip, { TripStatus } from '../models/Trip';
 import User, { UserRole } from '../models/User';
+import Complaint from '../models/Complaint';
+import Pricing from '../models/Pricing';
+import mongoose from 'mongoose';
 import { startDispatch, recordDispatchAttempt, getFareEstimate } from '../services/matching.service';
 import { deductCommission } from './wallet.controller';
 
@@ -68,6 +71,10 @@ export const acceptTrip = async (req: Request, res: Response) => {
     if (!driver || driver.walletBalance <= 0) {
       return res.status(403).json({ message: 'Insufficient wallet balance to accept trips' });
     }
+
+    // Mark driver as busy
+    driver.isBusy = true;
+    await driver.save();
 
     const trip = await recordDispatchAttempt(tripId, driverId, 'accepted');
 
@@ -144,6 +151,13 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       );
 
       trip.commission = commResult.commission;
+
+      // Mark driver as available again
+      await User.findByIdAndUpdate(trip.driver, { isBusy: false });
+    }
+
+    if (status === TripStatus.CANCELLED && trip.driver) {
+       await User.findByIdAndUpdate(trip.driver, { isBusy: false });
     }
 
     await trip.save();
@@ -212,5 +226,27 @@ export const getTripHistory = async (req: Request, res: Response) => {
     res.json({ trips, total, page, pages: Math.ceil(total / limit) });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching trip history', error });
+  }
+};
+
+// --- Add Complaint ---
+export const submitComplaint = async (req: Request, res: Response) => {
+  try {
+    const { tripId } = req.params;
+    const { reason, details, reportedId } = req.body;
+    const userId = (req as any).user._id;
+
+    const complaint = new Complaint({
+      tripId,
+      reporterId: userId,
+      reportedId,
+      reason,
+      details
+    });
+
+    await complaint.save();
+    res.status(201).json({ message: 'Complaint submitted successfully', complaint });
+  } catch (error) {
+    res.status(500).json({ message: 'Error submitting complaint', error });
   }
 };

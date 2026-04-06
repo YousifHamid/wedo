@@ -117,6 +117,7 @@ export default function DriverWalletScreen({ navigation }: any) {
         {showTopUp && (
           <View style={styles.topUpForm}>
             <Text style={styles.topUpFormTitle}>{t('top_up_wallet')}</Text>
+            
             <Text style={[styles.inputLabel, isRTL && styles.textRight]}>{t('top_up_amount')}</Text>
             <TextInput
               style={[styles.input, isRTL && styles.textRight]}
@@ -125,13 +126,21 @@ export default function DriverWalletScreen({ navigation }: any) {
               value={topUpAmount}
               onChangeText={setTopUpAmount}
             />
-            <Text style={[styles.inputLabel, isRTL && styles.textRight]}>{t('deposit_reference')}</Text>
+
+            <Text style={[styles.inputLabel, isRTL && styles.textRight]}>{isRTL ? 'الرقم المراد شحنه' : 'Phone to charge'}</Text>
             <TextInput
               style={[styles.input, isRTL && styles.textRight]}
-              placeholder="REF-XXXX-X"
-              value={reference}
-              onChangeText={setReference}
+              placeholder="09XXXXXXXX"
+              keyboardType="phone-pad"
+              value={user?.phone}
             />
+
+            <Text style={[styles.inputLabel, isRTL && styles.textRight]}>{isRTL ? 'إرفاق صورة الإشعار' : 'Attach Receipt Image'}</Text>
+            <TouchableOpacity style={styles.uploadBtn}>
+              <Plus color={COLORS.onSurfaceVariant} size={20} />
+              <Text style={styles.uploadText}>{isRTL ? 'إضافة صورة' : 'Add Image'}</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity 
               style={[styles.submitBtn, submitting && { opacity: 0.7 }]} 
               onPress={handleSubmitTopUp}
@@ -139,7 +148,15 @@ export default function DriverWalletScreen({ navigation }: any) {
             >
               <Text style={styles.submitBtnText}>{submitting ? '...' : t('submit_request')}</Text>
             </TouchableOpacity>
-            <Text style={styles.topUpNote}>{t('top_up_instructions')}</Text>
+            
+            <View style={styles.soonSection}>
+              <Text style={styles.soonLabel}>{isRTL ? 'قريباً عبر:' : 'Coming soon via:'}</Text>
+              <View style={styles.soonGrid}>
+                <View style={styles.soonItem}><Text style={styles.soonText}>Bankak</Text></View>
+                <View style={styles.soonItem}><Text style={styles.soonText}>MyCash</Text></View>
+                <View style={styles.soonItem}><Text style={styles.soonText}>Okash</Text></View>
+              </View>
+            </View>
           </View>
         )}
 
@@ -220,4 +237,13 @@ const styles = StyleSheet.create({
   txDesc: { fontSize: FONT_SIZES.sm, fontWeight: '600', color: COLORS.onSurface },
   txTime: { fontSize: FONT_SIZES.xs, color: COLORS.onSurfaceVariant, marginTop: 2 },
   txAmount: { fontSize: FONT_SIZES.md, fontWeight: 'bold' },
+
+  // New form elements
+  uploadBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surfaceContainerLow, borderStyle: 'dashed', borderWidth: 1, borderColor: COLORS.outlineVariant, borderRadius: RADIUS.md, paddingVertical: SPACING.xl, marginBottom: SPACING.lg },
+  uploadText: { color: COLORS.onSurfaceVariant, fontSize: FONT_SIZES.sm, fontWeight: '600', marginLeft: 8 },
+  soonSection: { marginTop: SPACING.xl, paddingTop: SPACING.xl, borderTopWidth: 1, borderTopColor: COLORS.surfaceContainerHigh },
+  soonLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: COLORS.outlineVariant, letterSpacing: 0.5, marginBottom: SPACING.md, textAlign: 'center' },
+  soonGrid: { flexDirection: 'row', justifyContent: 'center', gap: SPACING.md },
+  soonItem: { backgroundColor: COLORS.surfaceContainerLow, paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, borderRadius: RADIUS.full },
+  soonText: { fontSize: 10, color: COLORS.onSurfaceVariant, fontWeight: 'bold' },
 });

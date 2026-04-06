@@ -5,6 +5,7 @@ export enum UserRole {
   RIDER = 'rider',
   DRIVER = 'driver',
   ADMIN = 'admin',
+  SUPER_ADMIN = 'super_admin',
 }
 
 export enum DriverStatus {
@@ -39,6 +40,9 @@ export interface IUser extends Document {
   reliabilityScore: number;    // 0-100, affects dispatch priority
   totalTrips: number;
   totalEarnings: number;
+  isBlocked: boolean; // For blocking riders
+  isBusy: boolean;    // For queuing logic
+  permissions?: string[]; // For staff (admin/super_admin) to control screen access
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -67,6 +71,9 @@ const userSchema = new Schema<IUser>({
   reliabilityScore: { type: Number, default: 100, min: 0, max: 100 },
   totalTrips: { type: Number, default: 0 },
   totalEarnings: { type: Number, default: 0 },
+  isBlocked: { type: Boolean, default: false },
+  isBusy: { type: Boolean, default: false },
+  permissions: { type: [String], default: [] },
 }, { timestamps: true });
 
 // Index for geospatial queries

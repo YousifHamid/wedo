@@ -27,7 +27,19 @@ interface TripState {
   // Zone (kept for pricing lookups)
   pickupZone: Zone | null;
   dropoffZone: Zone | null;
-  vehicleType: 'standard' | 'premium';
+  // Trip settings
+  // Trip settings
+  vehicleType: 'standard' | 'premium' | 'shared';
+  isFixedTrip: boolean; // true for static pricing, false for KM-based
+  paymentType: 'cash' | 'credit';
+  
+  // Destinations
+  stops: Zone[] | any[]; // Array of destinations
+  
+  // Dynamic Pricing
+  hasTraffic: boolean;
+  isRushHour: boolean;
+  hasFuelShortage: boolean;
   
   // Fare
   fareEstimate: number;
@@ -46,8 +58,13 @@ interface TripState {
   setDestination: (loc: LocationPoint) => void;
   setDestinationQuery: (q: string) => void;
   setPickupZone: (zone: Zone) => void;
+  addStop: (zone: Zone) => void;
+  removeStop: (index: number) => void;
   setDropoffZone: (zone: Zone) => void;
-  setVehicleType: (type: 'standard' | 'premium') => void;
+  setVehicleType: (type: 'standard' | 'premium' | 'shared') => void;
+  setIsFixedTrip: (fixed: boolean) => void;
+  setPaymentType: (type: 'cash' | 'credit') => void;
+  setDynamicSurge: (surge: { traffic?: boolean, rush?: boolean, fuel?: boolean }) => void;
   setFareEstimate: (fare: number) => void;
   setCustomFareAdjust: (amount: number) => void;
   setCurrentTrip: (trip: any) => void;
@@ -63,7 +80,13 @@ const useTripStore = create<TripState>((set) => ({
   destinationQuery: '',
   pickupZone: null,
   dropoffZone: null,
+  stops: [],
   vehicleType: 'standard',
+  isFixedTrip: true,
+  paymentType: 'cash',
+  hasTraffic: false,
+  isRushHour: false,
+  hasFuelShortage: false,
   fareEstimate: 0,
   customFareAdjust: 0,
   currentTrip: null,
@@ -75,8 +98,17 @@ const useTripStore = create<TripState>((set) => ({
   setDestination: (loc) => set({ destination: loc }),
   setDestinationQuery: (q) => set({ destinationQuery: q }),
   setPickupZone: (zone) => set({ pickupZone: zone }),
+  addStop: (zone) => set((state) => ({ stops: [...state.stops, zone] })),
+  removeStop: (index) => set((state) => ({ stops: state.stops.filter((_, i) => i !== index) })),
   setDropoffZone: (zone) => set({ dropoffZone: zone }),
   setVehicleType: (type) => set({ vehicleType: type }),
+  setIsFixedTrip: (fixed) => set({ isFixedTrip: fixed }),
+  setPaymentType: (type) => set({ paymentType: type }),
+  setDynamicSurge: (surge) => set((state) => ({
+    hasTraffic: surge.traffic ?? state.hasTraffic,
+    isRushHour: surge.rush ?? state.isRushHour,
+    hasFuelShortage: surge.fuel ?? state.hasFuelShortage,
+  })),
   setFareEstimate: (fare) => set({ fareEstimate: fare }),
   setCustomFareAdjust: (amount) => set({ customFareAdjust: amount }),
   setCurrentTrip: (trip) => set({ currentTrip: trip }),
@@ -89,7 +121,13 @@ const useTripStore = create<TripState>((set) => ({
     destinationQuery: '',
     pickupZone: null,
     dropoffZone: null,
+    stops: [],
     vehicleType: 'standard',
+    isFixedTrip: true,
+    paymentType: 'cash',
+    hasTraffic: false,
+    isRushHour: false,
+    hasFuelShortage: false,
     fareEstimate: 0,
     customFareAdjust: 0,
     currentTrip: null,

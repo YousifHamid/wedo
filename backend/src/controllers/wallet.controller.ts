@@ -153,41 +153,58 @@ export const getPendingTopUps = async (req: Request, res: Response) => {
 
 // Utility: Deduct commission from driver wallet after trip completion
 export const deductCommission = async (driverId: string, tripId: string, fare: number, commissionRate: number) => {
-  const commission = Math.round(fare * (commissionRate / 100));
   const driver = await User.findById(driverId);
   if (!driver) throw new Error('Driver not found');
 
+  let finalCommissionRate = commissionRate;
+  let description = `Commission deducted (${commissionRate}%)`;
+
+  // Apply new rule: First 5 trips are free. After that, 50% commission for the driver.
+  if (driver.totalTrips < 5) {
+    finalCommissionRate = 0;
+    description = `Free Trip (First 5 trips grace period)`;
+  } else {
+    // 50% of the commission goes to the company, the other 50% "stays with driver" 
+    // which means we only deduct half of the standard rate.
+    finalCommissionRate = commissionRate / 2;
+    description = `Discounted Commission (${finalCommissionRate}% instead of ${commissionRate}%)`;
+  }
+
+  const commission = Math.round(fare * (finalCommissionRate / 100));
+  
   driver.walletBalance -= commission;
   driver.totalEarnings += (fare - commission);
   driver.totalTrips += 1;
 
-  // Block driver if wallet <= 0
-  if (driver.walletBalance <= 0) {
+  // Block driver only if wallet balance becomes negative
+  if (driver.walletBalance < 0) {
     driver.isOnline = false;
     driver.driverStatus = 'blocked' as any;
   }
 
   await driver.save();
 
-  // Log commission transaction
-  await Transaction.create({
-    user: driverId,
-    amount: commission,
-    type: TransactionType.DEBIT,
-    description: `Commission deducted (${commissionRate}%)`,
-    trip: tripId,
-    balanceAfter: driver.walletBalance,
-  });
+  // Log commission transaction if any
+  if (commission > 0) {
+    await Transaction.create({
+      user: driverId,
+      amount: commission,
+      type: TransactionType.DEBIT,
+      description: description,
+      trip: tripId,
+      balanceAfter: driver.walletBalance,
+    });
+  } else {
+    // Log free trip
+    await Transaction.create({
+      user: driverId,
+      amount: 0,
+      type: TransactionType.CREDIT,
+      description: `Free Trip Reward: No commission deducted`,
+      trip: tripId,
+      balanceAfter: driver.walletBalance,
+    });
+  }
 
-  // Log earnings transaction  
-  await Transaction.create({
-    user: driverId,
-    amount: fare - commission,
-    type: TransactionType.CREDIT,
-    description: `Trip earnings (fare: ${fare} SDG)`,
-    trip: tripId,
-    balanceAfter: driver.walletBalance,
-  });
-
-  return { commission, newBalance: driver.walletBalance, isBlocked: driver.walletBalance <= 0 };
+  return { commission, newBalance: driver.walletBalance, isBlocked: driver.walletBalance < 0 };
 };

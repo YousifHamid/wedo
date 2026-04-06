@@ -1,173 +1,204 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
-import { Navigation, Phone, MapPin, ChevronRight } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, Share, Modal, Platform, Dimensions } from 'react-native';
+import { Navigation, Phone, MapPin, ChevronRight, AlertCircle, PlusCircle, Share2, ShieldAlert } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import useTripStore from '../../store/useTripStore';
+import useAuthStore from '../../store/useAuthStore';
 import { getSocket } from '../../services/socket';
 import api from '../../services/api';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
+import { SafeMapView as MapView, SafeMarker as Marker } from '../../components/MapViewMock';
+
+
+const { width } = Dimensions.get('window');
 
 export default function TripStatusScreen({ navigation }: any) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
-  const { pickupZone, dropoffZone, fareEstimate, assignedDriver, currentTrip, setTripStatus, resetTrip } = useTripStore();
+  const { pickupZone, dropoffZone, fareEstimate, assignedDriver, currentTrip, setTripStatus, resetTrip, stops, addStop } = useTripStore();
   const [tripPhase, setTripPhase] = useState<'en_route_pickup' | 'arrived' | 'in_progress' | 'completed'>(
     (currentTrip?.status as any) || 'en_route_pickup'
   );
+  const [showDeviationAlert, setShowDeviationAlert] = useState(false);
+  const [deviationDismissed, setDeviationDismissed] = useState(false);
+  const [vehiclePos, setVehiclePos] = useState({ latitude: 15.5007, longitude: 32.5599 });
 
   const getZoneLabel = (zone: any) => isRTL ? zone?.nameAr : zone?.name;
 
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
+    // Simulation for demo movement
+    const moveInterval = setInterval(() => {
+       setVehiclePos(prev => ({
+          latitude: prev.latitude + (Math.random() - 0.5) * 0.0005,
+          longitude: prev.longitude + (Math.random() - 0.5) * 0.0005,
+       }));
+    }, 3000);
 
-    // Listen for trip status updates from the driver/server
-    socket.on('trip:status_updated', (data: any) => {
-      console.log('[Wedo] Trip status updated:', data.status);
-      if (data.status === 'arrived') {
-        setTripPhase('arrived');
-      } else if (data.status === 'active') {
-        setTripPhase('in_progress');
-      } else if (data.status === 'completed') {
+    const { isServerEnabled } = useAuthStore.getState();
+    if (!isServerEnabled) {
+      const timers: any[] = [];
+      timers.push(setTimeout(() => setTripPhase('arrived'), 8000));
+      timers.push(setTimeout(() => setTripPhase('in_progress'), 15000));
+      timers.push(setTimeout(() => {
         setTripPhase('completed');
         setTripStatus('completed');
         navigation.navigate('TripComplete');
-      } else if (data.status === 'cancelled') {
-        Alert.alert(
-          isRTL ? 'تم إلغاء الرحلة' : 'Trip Cancelled',
-          isRTL ? 'نعتذر، تم إلغاء هذه الرحلة.' : 'Sorry, this trip has been cancelled.',
-          [{ text: 'OK', onPress: () => { resetTrip(); navigation.navigate('UserHome'); } }]
-        );
+      }, 25000));
+      return () => {
+        clearInterval(moveInterval);
+        timers.forEach(t => clearTimeout(t));
+      };
+    }
+
+    const socket = getSocket();
+    if (!socket) return;
+    socket.on('trip:status_updated', (data: any) => {
+      if (data.status === 'arrived') setTripPhase('arrived');
+      else if (data.status === 'active') setTripPhase('in_progress');
+      else if (data.status === 'completed') {
+        setTripPhase('completed');
+        setTripStatus('completed');
+        navigation.navigate('TripComplete');
       }
     });
 
     return () => {
+      clearInterval(moveInterval);
       socket.off('trip:status_updated');
     };
   }, []);
 
   const getStatusLabel = () => {
     switch (tripPhase) {
-      case 'en_route_pickup': return t('driver_arriving');
-      case 'arrived': return t('arrived_pickup');
-      case 'in_progress': return t('en_route');
-      case 'completed': return t('trip_complete');
-      default: return t('driver_arriving');
+      case 'en_route_pickup': return isRTL ? 'الكابتن في الطريق إليك' : t('driver_arriving');
+      case 'arrived': return isRTL ? 'الكابتن وصل' : t('arrived_pickup');
+      case 'in_progress': return isRTL ? 'في الطريق' : t('en_route');
+      case 'completed': return isRTL ? 'وصلت بسلامة' : t('trip_complete');
+      default: return isRTL ? 'الكابتن قادم' : t('driver_arriving');
     }
   };
 
-  const handleCall = () => {
-    // In a real app, use Linking to dial
-    Alert.alert(t('call_driver'), `${t('phone_label')}: ${assignedDriver?.phone || '---'}`);
-  };
+  const handleCall = () => Alert.alert(t('call_driver'), `${t('phone_label')}: ${assignedDriver?.phone || '---'}`);
 
   const handleCancel = () => {
-    Alert.alert(
-      isRTL ? 'إلغاء الرحلة' : 'Cancel Trip',
-      isRTL ? 'هل أنت متأكد من إلغاء الرحلة؟' : 'Are you sure you want to cancel the trip?',
-      [
-        { text: t('cancel'), style: 'cancel' },
-        { 
-          text: isRTL ? 'نعم، إلغاء' : 'Yes, Cancel', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              if (currentTrip?._id) {
-                await api.put(`/trip/${currentTrip._id}/status`, { status: 'cancelled' });
-              }
-              resetTrip();
-              navigation.navigate('UserHome');
-            } catch (e) {
-              Alert.alert('Error', 'Failed to cancel trip');
-            }
-          }
-        }
-      ]
-    );
+    Alert.alert(isRTL ? 'إلغاء الرحلة' : 'Cancel Trip', isRTL ? 'هل أنت متأكد من إلغاء الرحلة؟' : 'Are you sure?', [
+      { text: isRTL ? 'لا' : 'No', style: 'cancel' },
+      { text: isRTL ? 'نعم، ألغِ' : 'Yes', onPress: () => { resetTrip(); navigation.navigate('UserHome'); } }
+    ]);
+  };
+
+  const handleShareTrip = async () => {
+    try {
+      await Share.share({ message: isRTL ? 'تتبع رحلتي مع ودّو!' : 'Track my Wedo trip!' });
+    } catch (e) {}
+  };
+
+  const handleComplaint = () => Alert.alert(isRTL ? 'مركز الأمان' : 'Safety Center', isRTL ? 'تم استلام بلاغك. سيتم المتابعة من فريقنا' : 'Report received');
+
+  const handleAddStopAtRide = () => {
+     addStop({ _id: 'new_stop', name: 'New Stop', nameAr: 'وقفة جديدة' });
   };
 
   return (
     <View style={styles.container}>
-      {/* Map placeholder */}
       <View style={styles.mapBg}>
-        <View style={styles.mapGrid}>
-          {Array.from({ length: 20 }).map((_, i) => (
-            <View key={i} style={[styles.gridLine, { top: i * 40 }]} />
-          ))}
+        {MapView ? (
+          <MapView style={styles.map} initialRegion={{ latitude: 15.5007, longitude: 32.5599, latitudeDelta: 0.1, longitudeDelta: 0.1 }}>
+            {Marker && (
+              <Marker coordinate={vehiclePos}>
+                <View style={styles.carMarker}><Navigation color="#fff" size={16} /></View>
+              </Marker>
+            )}
+          </MapView>
+        ) : (
+          <View style={styles.mapGridPlaceholder} />
+        )}
+      </View>
+
+      {/* Trip Timeline Progress */}
+      <View style={styles.timelineBar}>
+        <View style={styles.timelineSteps}>
+          {/* Step 1: Start */}
+          <View style={styles.timelineStep}>
+            <View style={[styles.timelineDot, { backgroundColor: COLORS.primary }]}>
+              <Text style={styles.timelineDotText}>1</Text>
+            </View>
+            <Text style={[styles.timelineLabel, { color: COLORS.primary, fontWeight: 'bold' }]}>{isRTL ? 'بداية' : 'Start'}</Text>
+          </View>
+
+          {/* Line 1→2 */}
+          <View style={[styles.timelineLine, { backgroundColor: tripPhase === 'en_route_pickup' ? '#e5e5e5' : COLORS.primary }]} />
+
+          {/* Step 2: En Route */}
+          <View style={styles.timelineStep}>
+            <View style={[styles.timelineDot, { backgroundColor: (tripPhase === 'in_progress' || tripPhase === 'arrived' || tripPhase === 'completed') ? COLORS.primary : '#ccc' }]}>
+              <Text style={styles.timelineDotText}>2</Text>
+            </View>
+            <Text style={[styles.timelineLabel, { color: (tripPhase === 'in_progress' || tripPhase === 'arrived') ? COLORS.primary : '#999' }]}>
+              {isRTL ? 'في الطريق' : 'En Route'}
+            </Text>
+          </View>
+
+          {/* Line 2→3 */}
+          <View style={[styles.timelineLine, { backgroundColor: tripPhase === 'completed' ? COLORS.success : '#e5e5e5' }]} />
+
+          {/* Step 3: Arriving */}
+          <View style={styles.timelineStep}>
+            <View style={[styles.timelineDot, { backgroundColor: tripPhase === 'completed' ? COLORS.success : '#ccc' }]}>
+              <Text style={styles.timelineDotText}>3</Text>
+            </View>
+            <Text style={[styles.timelineLabel, { color: tripPhase === 'completed' ? COLORS.success : '#999' }]}>
+              {isRTL ? 'الوصول' : 'Arriving'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Current Status Text */}
+        <View style={[styles.statusPill, { backgroundColor: tripPhase === 'in_progress' ? '#e8f5e9' : tripPhase === 'arrived' ? '#fff3e0' : '#e3f2fd' }]}>
+          <View style={[styles.statusPulse, { backgroundColor: tripPhase === 'in_progress' ? COLORS.primary : tripPhase === 'arrived' ? COLORS.warning : COLORS.primary }]} />
+          <Text style={[styles.statusPillText, { color: tripPhase === 'in_progress' ? COLORS.primary : tripPhase === 'arrived' ? '#f59e0b' : COLORS.primary }]}>
+            {getStatusLabel()}
+          </Text>
         </View>
       </View>
 
-      {/* Status Bar */}
-      <View style={styles.statusBar}>
-        <View style={[styles.statusDot, {
-          backgroundColor: tripPhase === 'in_progress' ? COLORS.primary : COLORS.warning,
-        }]} />
-        <Text style={styles.statusText}>{getStatusLabel()}</Text>
-      </View>
-
-      {/* Bottom Sheet */}
       <View style={styles.bottomSheet}>
-        <View style={styles.progressRow}>
-          <View style={styles.progressSteps}>
-            <View style={[styles.dot, styles.dotActive]} />
-            <View style={[styles.line, (tripPhase === 'arrived' || tripPhase === 'in_progress') && styles.lineActive]} />
-            <View style={[styles.dot, (tripPhase === 'arrived' || tripPhase === 'in_progress') && styles.dotActive]} />
-            <View style={[styles.line, tripPhase === 'in_progress' && styles.lineActive]} />
-            <View style={[styles.dot, tripPhase === 'in_progress' && styles.dotActive]} />
-          </View>
-          <View style={styles.progressLabels}>
-            <Text style={styles.progressLabel}>{t('pickup_zone')}</Text>
-            <Text style={styles.progressLabel}>{t('arrived_pickup')}</Text>
-            <Text style={styles.progressLabel}>{t('dropoff_zone')}</Text>
-          </View>
-        </View>
-
-        {/* Route Info */}
         <View style={styles.routeCard}>
           <View style={[styles.routeItem, isRTL && { flexDirection: 'row-reverse' }]}>
-            <View style={[styles.routeIcon, { backgroundColor: '#e8f5e9' }]}>
-              <MapPin color={COLORS.primary} size={16} />
-            </View>
+            <MapPin color={COLORS.primary} size={16} />
             <Text style={styles.routeText}>{getZoneLabel(pickupZone)}</Text>
           </View>
           <View style={styles.routeDivider} />
           <View style={[styles.routeItem, isRTL && { flexDirection: 'row-reverse' }]}>
-            <View style={[styles.routeIcon, { backgroundColor: '#fff3e0' }]}>
-              <Navigation color={COLORS.warning} size={16} />
-            </View>
+            <Navigation color={COLORS.warning} size={16} />
             <Text style={styles.routeText}>{getZoneLabel(dropoffZone)}</Text>
           </View>
         </View>
 
-        {/* Fare */}
         <View style={styles.fareRow}>
           <Text style={styles.fareLabel}>{t('total_fare')}</Text>
           <Text style={styles.fareAmount}>{t('sdg')} {fareEstimate.toLocaleString()}</Text>
         </View>
-        <Text style={styles.cashNote}>{t('pay_cash')}</Text>
 
-        {/* Driver Info Row */}
         <View style={[styles.driverRow, isRTL && { flexDirection: 'row-reverse' }]}>
-          <View style={styles.driverAvatar}>
-            <Text style={styles.avatarText}>{assignedDriver?.name?.charAt(0) || 'A'}</Text>
+          <View style={styles.driverAvatar}><Text style={styles.avatarText}>A</Text></View>
+          <View style={{ flex: 1, marginHorizontal: 12 }}>
+            <Text style={styles.driverName}>{assignedDriver?.name}</Text>
+            <Text style={styles.driverVehicle}>{assignedDriver?.vehicleDetails?.make} • {assignedDriver?.vehicleDetails?.plateNumber}</Text>
           </View>
-          <View style={{ flex: 1, marginLeft: isRTL ? 0 : 12, marginRight: isRTL ? 12 : 0 }}>
-            <Text style={styles.driverName}>{isRTL ? (assignedDriver?.nameAr || assignedDriver?.name) : assignedDriver?.name}</Text>
-            <Text style={styles.driverVehicle}>
-              {assignedDriver?.vehicleDetails?.make} {assignedDriver?.vehicleDetails?.model} • {assignedDriver?.vehicleDetails?.plateNumber}
-            </Text>
-          </View>
-          <TouchableOpacity style={styles.callIcon} onPress={handleCall}>
-            <Phone color={COLORS.onSurface} size={18} />
+          <TouchableOpacity onPress={handleCall} style={styles.callIcon}><Phone size={18} color={COLORS.onSurface} /></TouchableOpacity>
+        </View>
+
+        <View style={[styles.safetyActionRow, isRTL && { flexDirection: 'row-reverse' }]}>
+          <TouchableOpacity style={[styles.safetyActionBtn, { backgroundColor: COLORS.primaryContainer }]} onPress={handleShareTrip}>
+            <Share2 color={COLORS.onPrimaryContainer} size={20} /><Text style={{ marginLeft: 8 }}>{isRTL ? 'مشاركة' : 'Share'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.safetyActionBtn, { backgroundColor: '#fee2e2', marginLeft: 12 }]} onPress={handleComplaint}>
+            <ShieldAlert color={COLORS.error} size={20} /><Text style={{ marginLeft: 8, color: COLORS.error }}>{isRTL ? 'أمان' : 'Safety'}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Cancel Button (only shown if not in progress) */}
-        {tripPhase === 'en_route_pickup' && (
-          <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
-            <Text style={styles.cancelBtnText}>{t('cancel_request')}</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}><Text style={styles.cancelBtnText}>{t('cancel_request')}</Text></TouchableOpacity>
       </View>
     </View>
   );
@@ -176,44 +207,38 @@ export default function TripStatusScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#e8d5b8' },
   mapBg: { flex: 1 },
-  mapGrid: { flex: 1, opacity: 0.1 },
-  gridLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: COLORS.primary },
+  map: { width: '100%', height: '100%' },
+  mapGridPlaceholder: { flex: 1, backgroundColor: '#e8d5b8' },
 
-  statusBar: { position: 'absolute', top: 60, left: SPACING.xl, right: SPACING.xl, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceContainerLowest, paddingHorizontal: SPACING.xl, paddingVertical: SPACING.lg, borderRadius: RADIUS.full, ...SHADOWS.md },
-  statusDot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
-  statusText: { fontSize: FONT_SIZES.md, fontWeight: '600', color: COLORS.onSurface },
+  // Timeline
+  timelineBar: { position: 'absolute', top: 50, left: 16, right: 16, backgroundColor: '#fff', borderRadius: 16, padding: 16, ...SHADOWS.md, zIndex: 10 },
+  timelineSteps: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  timelineStep: { alignItems: 'center', width: 70 },
+  timelineDot: { width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
+  timelineDotText: { fontSize: 12, fontWeight: 'bold', color: '#fff' },
+  timelineLabel: { fontSize: 10, fontWeight: '600' },
+  timelineLine: { height: 3, flex: 1, borderRadius: 2 },
+  statusPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, marginTop: 12, alignSelf: 'center' },
+  statusPulse: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
+  statusPillText: { fontSize: 13, fontWeight: 'bold' },
 
-  bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.surfaceContainerLowest, borderTopLeftRadius: RADIUS['2xl'], borderTopRightRadius: RADIUS['2xl'], padding: SPACING['2xl'], paddingBottom: 40, ...SHADOWS.lg },
-  
-  // Progress
-  progressRow: { marginBottom: SPACING.xl },
-  progressSteps: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
-  dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.surfaceContainerHigh },
-  dotActive: { backgroundColor: COLORS.primary },
-  line: { flex: 1, height: 3, backgroundColor: COLORS.surfaceContainerHigh, marginHorizontal: 4 },
-  lineActive: { backgroundColor: COLORS.primary },
-  progressLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-  progressLabel: { fontSize: FONT_SIZES.xs, color: COLORS.onSurfaceVariant },
-
-  // Route
-  routeCard: { backgroundColor: COLORS.surfaceContainerLow, borderRadius: RADIUS.lg, padding: SPACING.lg, marginBottom: SPACING.lg },
-  routeItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: SPACING.sm },
-  routeIcon: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: SPACING.md },
-  routeText: { fontSize: FONT_SIZES.md, fontWeight: '600', color: COLORS.onSurface },
-  routeDivider: { height: 1, backgroundColor: COLORS.surfaceContainerHigh, marginLeft: 44 },
-
-  fareRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  fareLabel: { fontSize: FONT_SIZES.sm, color: COLORS.onSurfaceVariant },
-  fareAmount: { fontSize: FONT_SIZES.xl, fontWeight: 'bold', color: COLORS.onSurface },
-  cashNote: { fontSize: FONT_SIZES.xs, color: COLORS.tertiary, fontWeight: '600', marginBottom: SPACING.lg },
-
-  driverRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceContainerLow, borderRadius: RADIUS.lg, padding: SPACING.lg, marginBottom: SPACING.xl },
+  bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, ...SHADOWS.lg },
+  routeCard: { backgroundColor: COLORS.surfaceContainerLow, padding: 16, borderRadius: 12, marginBottom: 16 },
+  routeItem: { flexDirection: 'row', alignItems: 'center', marginVertical: 4 },
+  routeText: { marginLeft: 12, fontWeight: 'bold' },
+  routeDivider: { height: 1, backgroundColor: '#eee', marginLeft: 28, marginVertical: 4 },
+  fareRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+  fareLabel: { color: COLORS.onSurfaceVariant },
+  fareAmount: { fontSize: 20, fontWeight: 'bold' },
+  driverRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceContainerLow, padding: 16, borderRadius: 12, marginBottom: 16 },
   driverAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { color: COLORS.onPrimary, fontWeight: 'bold', fontSize: FONT_SIZES.md },
-  driverName: { fontSize: FONT_SIZES.md, fontWeight: '700', color: COLORS.onSurface },
-  driverVehicle: { fontSize: FONT_SIZES.sm, color: COLORS.onSurfaceVariant },
-  callIcon: { width: 40, height: 40, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceContainerHigh, justifyContent: 'center', alignItems: 'center' },
-
-  cancelBtn: { backgroundColor: COLORS.surfaceContainerHigh, paddingVertical: SPACING.xl, borderRadius: RADIUS.xl, alignItems: 'center' },
-  cancelBtnText: { color: COLORS.onSurface, fontSize: FONT_SIZES.md, fontWeight: 'bold' },
+  avatarText: { color: '#fff', fontWeight: 'bold' },
+  driverName: { fontWeight: 'bold' },
+  driverVehicle: { fontSize: 12, color: COLORS.onSurfaceVariant },
+  callIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eee', justifyContent: 'center', alignItems: 'center' },
+  safetyActionRow: { flexDirection: 'row', marginBottom: 16 },
+  safetyActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 12 },
+  cancelBtn: { backgroundColor: '#eee', padding: 16, borderRadius: 12, alignItems: 'center' },
+  cancelBtnText: { fontWeight: 'bold' },
+  carMarker: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' }
 });

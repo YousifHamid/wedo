@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Dimensions, Keyboard, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Dimensions, Keyboard, Alert, Animated, Platform } from 'react-native';
 import * as Location from 'expo-location';
 import useAuthStore from '../../store/useAuthStore';
 import useTripStore from '../../store/useTripStore';
@@ -7,24 +7,21 @@ import api from '../../services/api';
 import { useTranslation } from 'react-i18next';
 import { ZONES as LOCAL_ZONES, ZoneItem, getZoneFare } from '../../constants/zones';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
-import { Search, MapPin, Car, User, X, ChevronRight, Crown, Shield, Clock, Menu, Wallet, History } from 'lucide-react-native';
+import { Search, MapPin, Car, User, X, ChevronRight, ChevronLeft, Crown, Shield, Clock, Menu, Wallet, History, Banknote, CreditCard, Layers, PlusCircle, Navigation, ArrowLeft } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
-// Safe map import
-let MapView: any = null;
-let Marker: any = null;
-try {
-  const maps = require('react-native-maps');
-  MapView = maps.default;
-  Marker = maps.Marker;
-} catch (e) {}
+import { SafeMapView as MapView, SafeMarker as Marker } from '../../components/MapViewMock';
+import InteractiveMapMock from '../../components/InteractiveMapMock';
+
 
 export default function UserHomeScreen({ navigation }: any) {
   const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
   const isRTL = i18n.language === 'ar';
   const { user } = useAuthStore();
-  const { vehicleType, setVehicleType, setPickupZone, setDropoffZone, setFareEstimate, setTripStatus } = useTripStore();
+  const { vehicleType, setVehicleType, pickupZone, setPickupZone, dropoffZone, setDropoffZone, setFareEstimate, setTripStatus, stops, addStop, removeStop } = useTripStore();
 
   const [location, setLocation] = useState<any>(null);
   const [destination, setDestination] = useState('');
@@ -32,9 +29,41 @@ export default function UserHomeScreen({ navigation }: any) {
   const [zones, setZones] = useState<ZoneItem[]>(LOCAL_ZONES);
   const [filteredZones, setFilteredZones] = useState<ZoneItem[]>([]);
   const [selectedDropoff, setSelectedDropoff] = useState<ZoneItem | null>(null);
+  const [pinMode, setPinMode] = useState<'pickup' | 'destination' | null>(null);
   const [mapError, setMapError] = useState(false);
+  const [drivers, setDrivers] = useState<any[]>([]);
+  const [isSearchingMap, setIsSearchingMap] = useState(false);
+  const [routeStatus, setRouteStatus] = useState<'analyzing' | 'optimal' | null>(null);
 
-  // Fetch zones from API, fallback to local
+  // Uber-style map interaction state (handled inside InteractiveMapMock)
+  const [isDragging, setIsDragging] = useState(false);
+  const [hasDragged, setHasDragged] = useState(false);
+  const [currentAddress, setCurrentAddress] = useState<string | null>(null);
+
+  const handleMapDragStart = useCallback(() => {
+    setIsDragging(true);
+    setHasDragged(true);
+  }, []);
+
+  const handleMapDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const handleConfirmMapPin = useCallback(() => {
+    const addressStr = isRTL ? 'موقع محدد على الخريطة' : 'Selected map location';
+    const customZone: ZoneItem = {
+      _id: `custom_${Date.now()}`,
+      name: addressStr,
+      nameAr: `📍 ${addressStr}`,
+      description: 'Pinned on map',
+      descriptionAr: 'محدد عبر الخريطة'
+    };
+    setSelectedDropoff(customZone);
+    setDropoffZone(customZone);
+    setDestination(isRTL ? customZone.nameAr : customZone.name);
+    setHasDragged(false);
+  }, [isRTL, setDropoffZone]);
+
   useEffect(() => {
     const fetchZones = async () => {
       try {
@@ -51,7 +80,6 @@ export default function UserHomeScreen({ navigation }: any) {
           setPickupZone(apiZones[0]);
         }
       } catch (e) {
-        // Use local zones as fallback
         console.log('[Wedo] Using local zones fallback');
       }
     };
@@ -68,47 +96,116 @@ export default function UserHomeScreen({ navigation }: any) {
         if (status !== 'granted') return;
         let loc = await Location.getCurrentPositionAsync({});
         setLocation(loc.coords);
+        
+        // Reverse geocode to get current address name
+        const addressArray = await Location.reverseGeocodeAsync({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude
+        });
+        if (addressArray && addressArray.length > 0) {
+          const address = addressArray[0];
+          const addressStr = address.street || address.name || address.city;
+          if (addressStr) {
+            setCurrentAddress(addressStr);
+            setPickupZone({
+              _id: 'current_loc',
+              name: addressStr,
+              nameAr: addressStr,
+              description: 'Current Location',
+              descriptionAr: 'موقعك الحالي'
+            });
+          }
+        }
       } catch (e) {}
     })();
   }, []);
 
-  // Smart search filter
+  // Initialize and move mock drivers
   useEffect(() => {
-    if (destination.trim().length > 0) {
-      const query = destination.toLowerCase();
-      const results = zones.filter(z => {
-        return z.name.toLowerCase().includes(query) || 
-               z.nameAr.includes(destination) || 
-               z.description?.toLowerCase().includes(query) ||
-               z.descriptionAr?.includes(destination);
-      });
-      setFilteredZones(results);
-      setShowSuggestions(true);
-    } else {
-      setFilteredZones([]);
-      setShowSuggestions(false);
-    }
+    const baseLat = location?.latitude || 15.5007;
+    const baseLng = location?.longitude || 32.5599;
+    
+    const initialDrivers = Array.from({ length: 6 }).map((_, i) => ({
+      id: `driver-${i}`,
+      latitude: baseLat + (Math.random() - 0.5) * 0.02,
+      longitude: baseLng + (Math.random() - 0.5) * 0.02,
+      rotation: Math.random() * 360,
+    }));
+    setDrivers(initialDrivers);
+
+    const interval = setInterval(() => {
+      setDrivers(prev => prev.map(d => ({
+        ...d,
+        latitude: d.latitude + (Math.random() - 0.5) * 0.0002,
+        longitude: d.longitude + (Math.random() - 0.5) * 0.0002,
+        rotation: d.rotation + (Math.random() - 0.5) * 5,
+      })));
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [location?.latitude]);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      if (destination.trim().length > 0) {
+        setShowSuggestions(true);
+        const query = destination.toLowerCase();
+        
+        const localResults = zones.filter(z => {
+          return z.name.toLowerCase().includes(query) || 
+                 z.nameAr.includes(destination) || 
+                 z.description?.toLowerCase().includes(query) ||
+                 z.descriptionAr?.includes(destination);
+        });
+
+        if (destination.trim().length >= 3) {
+           setIsSearchingMap(true);
+           try {
+              const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(destination)}&countrycodes=sd&format=json&limit=5`);
+              const data = await res.json();
+              
+              const mapResults = data.map((item: any) => ({
+                 _id: `map_${item.place_id}`,
+                 name: item.name || item.display_name.split(',')[0],
+                 nameAr: item.name || item.display_name.split(',')[0],
+                 description: '📍 ' + item.display_name,
+                 descriptionAr: '📍 ' + item.display_name,
+              }));
+
+              setFilteredZones([...localResults, ...mapResults]);
+           } catch(e) {
+              setFilteredZones(localResults);
+           } finally {
+              setIsSearchingMap(false);
+           }
+        } else {
+           setFilteredZones(localResults);
+        }
+      } else {
+        setFilteredZones([]);
+        setShowSuggestions(false);
+      }
+    };
+    
+    const delayDebounceFn = setTimeout(() => {
+      fetchLocations();
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
   }, [destination, zones]);
 
   const handleSelectDestination = async (zone: ZoneItem) => {
-    setSelectedDropoff(zone);
-    setDropoffZone(zone);
+    if (selectedDropoff) {
+      addStop(zone);
+    } else {
+      setSelectedDropoff(zone);
+      setDropoffZone(zone);
+      setRouteStatus('analyzing');
+      setTimeout(() => setRouteStatus('optimal'), 2500);
+    }
     setDestination(isRTL ? zone.nameAr : zone.name);
     setShowSuggestions(false);
     Keyboard.dismiss();
-
-    // Try to get pricing from API
-    try {
-      const pickupId = zones[0]._id;
-      const response = await api.get(`/zones/pricing?from=${pickupId}&to=${zone._id}`);
-      const pricing = response.data;
-      const fare = vehicleType === 'premium' ? pricing.premiumFare : pricing.baseFare;
-      setFareEstimate(fare);
-    } catch (e) {
-      // Fallback to local pricing
-      const fare = getZoneFare(zones[0]._id, zone._id, vehicleType);
-      setFareEstimate(fare);
-    }
   };
 
   const handleRequestRide = async () => {
@@ -121,59 +218,91 @@ export default function UserHomeScreen({ navigation }: any) {
     setDestination('');
     setSelectedDropoff(null);
     setShowSuggestions(false);
+    setRouteStatus(null);
   };
 
-  const handleSelectType = async (type: 'standard' | 'premium') => {
+  const handleSelectType = async (type: 'standard' | 'premium' | 'shared') => {
     setVehicleType(type);
     if (selectedDropoff) {
       try {
         const pickupId = zones[0]._id;
         const response = await api.get(`/zones/pricing?from=${pickupId}&to=${selectedDropoff._id}`);
-        const pricing = response.data;
-        const fare = type === 'premium' ? pricing.premiumFare : pricing.baseFare;
-        setFareEstimate(fare);
+        // Pricing logic
       } catch (e) {
-        const fare = getZoneFare(zones[0]._id, selectedDropoff._id, type);
+        let fare = getZoneFare(zones[0]._id, selectedDropoff._id, type === 'shared' ? 'standard' : type);
+        if (type === 'shared') fare = fare * 0.6;
         setFareEstimate(fare);
       }
     }
   };
 
-  const currentFare = selectedDropoff ? getZoneFare(zones[0]._id, selectedDropoff._id, vehicleType) : 0;
+  const currentFare = selectedDropoff ? getZoneFare(zones[0]._id, selectedDropoff._id, vehicleType === 'shared' ? 'standard' : vehicleType) : 0;
   const standardFare = selectedDropoff ? getZoneFare(zones[0]._id, selectedDropoff._id, 'standard') : 0;
   const premiumFare = selectedDropoff ? getZoneFare(zones[0]._id, selectedDropoff._id, 'premium') : 0;
+  const sharedFare = standardFare * 0.6;
+  const finalFare = currentFare + (stops.length * 1500);
 
   const renderMap = () => {
+    // Static positions for mock driver cars (scattered around center)
+    const mockCarPositions = [
+      { id: 1, top: '28%', left: '22%', rot: '30deg' },
+      { id: 2, top: '35%', left: '65%', rot: '-15deg' },
+      { id: 3, top: '55%', left: '40%', rot: '80deg' },
+      { id: 4, top: '20%', left: '55%', rot: '-45deg' },
+      { id: 5, top: '65%', left: '70%', rot: '120deg' },
+    ];
+
     if (MapView && !mapError) {
-      try {
-        return (
+      return (
+        <View style={styles.mapContainer}>
           <MapView
             style={styles.map}
-            initialRegion={{ latitude: 15.5007, longitude: 32.5599, latitudeDelta: 0.05, longitudeDelta: 0.05 }}
-            region={location ? { latitude: location.latitude, longitude: location.longitude, latitudeDelta: 0.02, longitudeDelta: 0.02 } : undefined}
+            initialRegion={{ latitude: 15.5007, longitude: 32.5599, latitudeDelta: 0.1, longitudeDelta: 0.1 }}
+            onRegionChangeComplete={(region: any) => {
+               setLocation({ latitude: region.latitude, longitude: region.longitude });
+            }}
+            showsUserLocation={true}
           >
-            {location && Marker && (
-              <Marker coordinate={{ latitude: location.latitude, longitude: location.longitude }}>
-                <View style={styles.userMarker} />
+            {Marker && drivers.map(d => (
+              <Marker key={d.id} coordinate={{ latitude: d.latitude, longitude: d.longitude }}>
+                <View style={[styles.driverMarker, { transform: [{ rotate: `${d.rotation}deg` }] }]}>
+                  <Car size={18} color="#fff" />
+                </View>
               </Marker>
-            )}
+            ))}
           </MapView>
-        );
-      } catch (e) { setMapError(true); }
+          {/* Uber-style floating pin on real map — static, no animation needed */}
+          {!selectedDropoff && (
+            <View style={styles.uberPinContainer} pointerEvents="none">
+              <MapPin size={52} color={COLORS.primary} strokeWidth={2} />
+            </View>
+          )}
+          <TouchableOpacity style={styles.gpsBtn} onPress={() => Alert.alert(isRTL ? 'تحديد الموقع' : 'Getting Location')}>
+            <Navigation color={COLORS.primary} size={20} />
+          </TouchableOpacity>
+        </View>
+      );
     }
+    // ── Mock map: use InteractiveMapMock with full pan + pinch-zoom ──
+    const mockDrivers = [
+      { id: 'd1', top: '28%', left: '22%', rot: '30deg' },
+      { id: 'd2', top: '35%', left: '65%', rot: '-15deg' },
+      { id: 'd3', top: '55%', left: '40%', rot: '80deg' },
+      { id: 'd4', top: '20%', left: '55%', rot: '-45deg' },
+      { id: 'd5', top: '65%', left: '70%', rot: '120deg' },
+    ];
     return (
-      <View style={styles.mapFallback}>
-        <View style={styles.mapGrid}>
-          {Array.from({ length: 25 }).map((_, i) => <View key={`h${i}`} style={[styles.gridLineH, { top: i * 32 }]} />)}
-          {Array.from({ length: 15 }).map((_, i) => <View key={`v${i}`} style={[styles.gridLineV, { left: i * (width / 14) }]} />)}
-        </View>
-        <View style={styles.mapCenterDot}>
-          <View style={styles.mapCenterDotInner} />
-          <View style={styles.mapCenterDotRing} />
-        </View>
-        <View style={[styles.driverDot, { top: '30%', left: '25%' }]}><Car color={COLORS.onSurface} size={14} /></View>
-        <View style={[styles.driverDot, { top: '35%', right: '20%' }]}><Car color={COLORS.onSurface} size={14} /></View>
-        <View style={[styles.driverDot, { bottom: '45%', left: '55%' }]}><Car color={COLORS.onSurface} size={14} /></View>
+      <View style={styles.mapContainer}>
+        <InteractiveMapMock
+          style={StyleSheet.absoluteFill}
+          drivers={!selectedDropoff ? mockDrivers : []}
+          onDragStart={handleMapDragStart}
+          onDragEnd={handleMapDragEnd}
+        />
+        {/* GPS button */}
+        <TouchableOpacity style={styles.gpsBtn} onPress={() => {}}>
+          <Navigation color={COLORS.primary} size={20} />
+        </TouchableOpacity>
       </View>
     );
   };
@@ -182,256 +311,160 @@ export default function UserHomeScreen({ navigation }: any) {
     <View style={styles.container}>
       {renderMap()}
 
-      {/* Top bar — profile + menu */}
-      <View style={styles.topBar}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Profile')}>
-          <Menu color={COLORS.onSurface} size={22} />
-        </TouchableOpacity>
-        <Text style={[styles.brandText, { color: '#000000' }]}>Wedo</Text>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Profile')}>
-          <User color={COLORS.onSurface} size={22} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Search + Suggestions overlay */}
-      {showSuggestions && (
-        <View style={styles.suggestionsOverlay}>
-          <View style={styles.suggestionsCard}>
-            <View style={styles.sugSearchBar}>
-              <Search size={18} color={COLORS.onSurfaceVariant} style={{ marginRight: 8 }} />
-              <TextInput
-                placeholder={t('where_to')}
-                placeholderTextColor={COLORS.onSurfaceVariant}
-                style={[styles.sugSearchInput, isRTL && { textAlign: 'right' }]}
-                value={destination}
-                onChangeText={setDestination}
-                autoFocus
-              />
-              <TouchableOpacity onPress={clearSearch} style={styles.clearBtn}>
-                <X size={16} color={COLORS.onSurfaceVariant} />
-              </TouchableOpacity>
-            </View>
-            {filteredZones.length > 0 ? filteredZones.map((zone) => (
-              <TouchableOpacity key={zone._id} style={styles.suggestionItem} onPress={() => handleSelectDestination(zone)}>
-                <View style={styles.suggestionIcon}><MapPin color={COLORS.primary} size={16} /></View>
-                <View style={styles.suggestionContent}>
-                  <Text style={[styles.suggestionName, isRTL && { textAlign: 'right' }]}>{isRTL ? zone.nameAr : zone.name}</Text>
-                  <Text style={[styles.suggestionDesc, isRTL && { textAlign: 'right' }]}>{isRTL ? (zone.descriptionAr || zone.description) : zone.description}</Text>
-                </View>
-                <ChevronRight color={COLORS.outlineVariant} size={16} />
-              </TouchableOpacity>
-            )) : (
-              <View style={styles.noResults}><Search size={20} color={COLORS.outlineVariant} /><Text style={styles.noResultsText}>{isRTL ? 'لا توجد نتائج' : 'No zones found'}</Text></View>
-            )}
+      {/* Top bar — hidden while dragging */}
+      {!selectedDropoff && !isDragging && (
+        <View style={[styles.topBar, { top: insets.top + 10 }]}>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Profile')}>
+            <Menu color={COLORS.onSurface} size={22} />
+          </TouchableOpacity>
+          <View style={{ alignItems: 'center' }}>
+            <Text style={styles.brandText}>Wedo</Text>
           </View>
+          <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Profile')}>
+            <User color={COLORS.onSurface} size={22} />
+          </TouchableOpacity>
         </View>
       )}
 
-      {/* Bottom sheet — "Where to?" */}
-      <View style={styles.bottomSheet}>
-        {/* Where to search bar */}
-        {!selectedDropoff ? (
-          <TouchableOpacity
-            style={styles.whereToBar}
-            onPress={() => {
-              setShowSuggestions(true);
-            }}
-            activeOpacity={0.9}
-          >
-            <View style={styles.whereToIcon}><Search size={20} color={COLORS.onPrimary} /></View>
-            <Text style={[styles.whereToText, isRTL && { textAlign: 'right' }]}>{t('where_to')}</Text>
+      {selectedDropoff && (
+         <View style={[styles.floatingRouteContainer, { top: insets.top + 10 }]}>
+           <View style={[styles.floatingRouteCard, isRTL && { flexDirection: 'row-reverse' }]}>
+             <TouchableOpacity style={{ padding: 8 }} onPress={clearSearch}>
+               {isRTL ? <ChevronRight size={24} color={COLORS.onSurface} /> : <ArrowLeft size={24} color={COLORS.onSurface} />}
+             </TouchableOpacity>
+             <View style={{ flex: 1, paddingHorizontal: 16 }}>
+               <Text style={[styles.floatingRouteText, isRTL && { textAlign: 'right' }]} numberOfLines={1}>
+                 {isRTL ? selectedDropoff.nameAr : selectedDropoff.name}
+               </Text>
+             </View>
+           </View>
+         </View>
+      )}
+
+      {/* Note: pin is rendered inside InteractiveMapMock for mock map.
+           For real maps above, the static pin above handles it. */}
+
+      {/* Confirm pin location — floats above bottom sheet when dragged */}
+      {!selectedDropoff && hasDragged && !isDragging && (
+        <View style={styles.confirmPinFloating}>
+          <TouchableOpacity style={styles.confirmPinBtn} onPress={handleConfirmMapPin} activeOpacity={0.88}>
+            <MapPin size={18} color="#fff" />
+            <Text style={[styles.confirmPinText, { marginLeft: 8 }]}>
+              {isRTL ? 'تأكيد هذا الموقع' : 'Confirm this location'}
+            </Text>
           </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Bottom sheet — hidden when dragging for full map UX */}
+      {!isDragging && (
+      <View style={[styles.bottomSheet, { paddingBottom: Math.max(insets.bottom + 16, 24) }]}>
+        {!selectedDropoff ? (
+          <>
+            <View style={[styles.pickupBar, isRTL && { flexDirection: 'row-reverse' }]}>
+              <View style={styles.pickupDot} />
+              <View style={{ flex: 1, marginHorizontal: 12 }}>
+                <Text style={[styles.pickupLabel, isRTL && { textAlign: 'right' }]}>{isRTL ? 'مكان الانطلاق' : 'Pickup From'}</Text>
+                <Text style={[styles.pickupValue, isRTL && { textAlign: 'right' }]}>{currentAddress ? `📍 ${currentAddress}` : (isRTL ? '📍 موقعك الحالي' : 'Current Location')}</Text>
+              </View>
+              <MapPin size={22} color={COLORS.success} />
+            </View>
+
+            <View style={[styles.pickupBar, { marginTop: -10 }, isRTL && { flexDirection: 'row-reverse' }]}>
+              <View style={[styles.pickupDot, { backgroundColor: COLORS.primary }]} />
+              <TextInput
+                placeholder={isRTL ? 'إلى أين تريد الذهاب؟' : 'Where to?'}
+                style={[{ flex: 1, marginHorizontal: 12, fontSize: 18, fontWeight: 'bold' }, isRTL && { textAlign: 'right' }]}
+                value={destination}
+                onChangeText={(val) => { setDestination(val); setShowSuggestions(true); }}
+                textAlign={isRTL ? 'right' : 'left'}
+              />
+              <Search size={20} color={COLORS.primary} />
+            </View>
+
+            {showSuggestions && destination.length > 0 && (
+              <View style={{ maxHeight: 200 }}>
+                {filteredZones.map((zone) => (
+                  <TouchableOpacity key={zone._id} style={[styles.suggestionItem, isRTL && { flexDirection: 'row-reverse' }]} onPress={() => handleSelectDestination(zone)}>
+                    <MapPin color={COLORS.primary} size={16} />
+                    <Text style={[{ marginHorizontal: 10 }, isRTL && { textAlign: 'right' }]}>{isRTL ? zone.nameAr : zone.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Hint: drag pin on map */}
+            {!hasDragged && !showSuggestions && (
+              <View style={styles.dragHintRow}>
+                <Text style={[styles.dragHintText, isRTL && { textAlign: 'right' }]}>
+                  {isRTL ? '💡 حرّك الخريطة لتحديد الوجهة مباشرة' : '💡 Drag the map to set destination'}
+                </Text>
+              </View>
+            )}
+          </>
         ) : (
-          /* Destination selected — show trip type + request */
           <View>
-            {/* Destination row */}
-            <View style={styles.destRow}>
-              <View style={styles.destDot} />
-              <Text style={[styles.destText, isRTL && { textAlign: 'right' }]} numberOfLines={1}>
-                {isRTL ? selectedDropoff.nameAr : selectedDropoff.name}
-              </Text>
-              <TouchableOpacity onPress={clearSearch} style={styles.destChange}>
-                <Text style={styles.destChangeText}>{t('change')}</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Trip type toggle */}
-            <View style={styles.typeRow}>
-              <TouchableOpacity 
-                style={[styles.typeChip, vehicleType === 'standard' && styles.typeChipActive]} 
-                onPress={() => handleSelectType('standard')}
-              >
-                <Shield color={vehicleType === 'standard' ? COLORS.onPrimary : COLORS.primary} size={16} />
-                <Text style={[styles.typeChipText, vehicleType === 'standard' && styles.typeChipTextActive]}>
-                  {t('mashi_standard')}
-                </Text>
-                <Text style={[styles.typeChipPrice, vehicleType === 'standard' && styles.typeChipPriceActive]}>
-                  {t('sdg')} {standardFare.toLocaleString()}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.typeChip, vehicleType === 'premium' && styles.typeChipActivePremium]} 
-                onPress={() => handleSelectType('premium')}
-              >
-                <Crown color={vehicleType === 'premium' ? '#fff' : '#b8860b'} size={16} />
-                <Text style={[styles.typeChipText, vehicleType === 'premium' && styles.typeChipTextActivePremium]}>
-                  {t('mashi_premium')}
-                </Text>
-                <Text style={[styles.typeChipPrice, vehicleType === 'premium' && styles.typeChipPriceActivePremium]}>
-                  {t('sdg')} {premiumFare.toLocaleString()}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Request button */}
-            <TouchableOpacity
-              style={[styles.requestBtn, vehicleType === 'premium' && styles.requestBtnPremium]}
-              onPress={handleRequestRide}
-            >
-              <Text style={styles.requestBtnText}>
-                {t('request_ride')} • {t('sdg')} {currentFare.toLocaleString()}
-              </Text>
+            <TouchableOpacity style={[styles.vehicleRow, isRTL && { flexDirection: 'row-reverse' }]} onPress={() => handleSelectType('standard')}>
+               <Car color={COLORS.primary} size={30} />
+               <View style={{ flex: 1, marginHorizontal: 12 }}>
+                 <Text style={[{ fontWeight: 'bold' }, isRTL && { textAlign: 'right' }]}>{isRTL ? 'عادية' : 'Standard'}</Text>
+                 <Text style={[{ fontSize: 12, color: COLORS.onSurfaceVariant }, isRTL && { textAlign: 'right' }]}>{isRTL ? '4 دقائق' : '4 min away'}</Text>
+               </View>
+               <Text style={{ fontWeight: 'bold' }}>{standardFare} SDG</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.requestMainBtn} onPress={handleRequestRide}>
+              <Text style={styles.requestMainText}>{isRTL ? 'اطلب الرحلة الآن' : 'Request Ride'}</Text>
             </TouchableOpacity>
           </View>
         )}
-
-        {/* Quick action row */}
-        <View style={styles.quickRow}>
-          <TouchableOpacity style={styles.quickItem} onPress={() => navigation.navigate('Profile')}>
-            <View style={styles.quickIcon}><History color={COLORS.onSurfaceVariant} size={20} /></View>
-            <Text style={styles.quickLabel}>{t('tab_trips')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickItem} onPress={() => navigation.navigate('Profile')}>
-            <View style={styles.quickIcon}><Wallet color={COLORS.onSurfaceVariant} size={20} /></View>
-            <Text style={styles.quickLabel}>{t('tab_wallet')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickItem} onPress={() => navigation.navigate('Profile')}>
-            <View style={styles.quickIcon}><User color={COLORS.onSurfaceVariant} size={20} /></View>
-            <Text style={styles.quickLabel}>{t('tab_profile')}</Text>
-          </TouchableOpacity>
-        </View>
       </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: COLORS.surface },
   map: { width, height },
-  
-  // Fallback map
-  mapFallback: { flex: 1, backgroundColor: '#e8d5b8', position: 'relative' },
-  mapGrid: { flex: 1, opacity: 0.08 },
-  gridLineH: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: COLORS.primary },
-  gridLineV: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: COLORS.primary },
-  mapCenterDot: { position: 'absolute', top: '40%', left: '50%', marginLeft: -20, marginTop: -20, width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  mapCenterDotInner: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.primary, borderWidth: 3, borderColor: '#fff', zIndex: 2 },
+  mapContainer: { flex: 1 },
+  mapFallback: { flex: 1, backgroundColor: '#e8d5b8', justifyContent: 'center', alignItems: 'center' },
+  mapCenterDot: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  mapCenterDotInner: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.primary, borderWidth: 3, borderColor: '#fff' },
   mapCenterDotRing: { position: 'absolute', width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, opacity: 0.15 },
-  driverDot: { position: 'absolute', width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.surfaceContainerLowest, justifyContent: 'center', alignItems: 'center', ...SHADOWS.sm },
-
-  // Top bar
-  topBar: {
-    position: 'absolute', top: 50, left: 16, right: 16,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    zIndex: 10,
-  },
-  iconBtn: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: COLORS.surfaceContainerLowest,
-    justifyContent: 'center', alignItems: 'center',
-    ...SHADOWS.md,
-  },
-  brandText: { fontSize: FONT_SIZES.xl, fontWeight: 'bold', color: COLORS.onSurface },
-  // Suggestions overlay
-  suggestionsOverlay: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: COLORS.surface, zIndex: 100, paddingTop: 50,
-  },
-  suggestionsCard: { flex: 1, paddingHorizontal: 16 },
-  sugSearchBar: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLow, padding: 14, borderRadius: RADIUS.xl,
-    marginBottom: 8,
-  },
-  sugSearchInput: { flex: 1, fontSize: FONT_SIZES.md, color: COLORS.onSurface },
-  clearBtn: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.surfaceContainerHigh, justifyContent: 'center', alignItems: 'center' },
-  suggestionItem: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 4,
-    borderBottomWidth: 1, borderBottomColor: COLORS.surfaceContainerLow,
-  },
-  suggestionIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primaryFixed, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  suggestionContent: { flex: 1 },
-  suggestionName: { fontSize: FONT_SIZES.md, fontWeight: '600', color: COLORS.onSurface },
-  suggestionDesc: { fontSize: FONT_SIZES.xs, color: COLORS.onSurfaceVariant, marginTop: 2 },
-  noResults: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 30 },
-  noResultsText: { fontSize: FONT_SIZES.sm, color: COLORS.onSurfaceVariant, marginLeft: 8 },
-
-  userMarker: { width: 14, height: 14, backgroundColor: COLORS.primary, borderRadius: 7, borderWidth: 3, borderColor: '#fff' },
-
-  // Bottom sheet
-  bottomSheet: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: COLORS.surfaceContainerLowest,
-    borderTopLeftRadius: RADIUS['2xl'], borderTopRightRadius: RADIUS['2xl'],
-    paddingHorizontal: 20, paddingTop: 20, paddingBottom: 28,
-    ...SHADOWS.lg, zIndex: 5,
-  },
-
-  // Where to bar
-  whereToBar: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: RADIUS.xl, padding: 16, marginBottom: 16,
-  },
-  whereToIcon: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.primary,
-    justifyContent: 'center', alignItems: 'center', marginRight: 12,
-  },
-  whereToText: { flex: 1, fontSize: FONT_SIZES.lg, fontWeight: '600', color: COLORS.onSurfaceVariant },
-
-  // Destination selected
-  destRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLow, borderRadius: RADIUS.lg,
-    paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12,
-  },
-  destDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.primary, marginRight: 12 },
-  destText: { flex: 1, fontSize: FONT_SIZES.md, fontWeight: '600', color: COLORS.onSurface },
-  destChange: { paddingHorizontal: 8, paddingVertical: 4 },
-  destChangeText: { fontSize: FONT_SIZES.sm, fontWeight: '700', color: COLORS.primary },
-
-  // Type row
-  typeRow: { flexDirection: 'row', marginBottom: 12, gap: 8 },
-  typeChip: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 12, paddingHorizontal: 10,
-    borderWidth: 1.5, borderColor: COLORS.surfaceContainerHigh,
-    borderRadius: RADIUS.lg, backgroundColor: COLORS.surfaceContainerLowest,
-  },
-  typeChipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primary },
-  typeChipActivePremium: { borderColor: '#b8860b', backgroundColor: '#b8860b' },
-  typeChipText: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: COLORS.onSurface, marginLeft: 6 },
-  typeChipTextActive: { color: COLORS.onPrimary },
-  typeChipTextActivePremium: { color: '#fff' },
-  typeChipPrice: { fontSize: FONT_SIZES.xs, fontWeight: '600', color: COLORS.onSurfaceVariant, marginLeft: 4 },
-  typeChipPriceActive: { color: 'rgba(255,255,255,0.8)' },
-  typeChipPriceActivePremium: { color: 'rgba(255,255,255,0.8)' },
-
-  // Request
-  requestBtn: {
-    backgroundColor: COLORS.primary, paddingVertical: 16, borderRadius: RADIUS.xl,
-    alignItems: 'center', marginBottom: 16, ...SHADOWS.md,
-  },
-  requestBtnPremium: { backgroundColor: '#b8860b' },
-  requestBtnText: { color: '#fff', fontSize: FONT_SIZES.lg, fontWeight: 'bold' },
-
-  // Quick actions
-  quickRow: { flexDirection: 'row', justifyContent: 'space-around' },
-  quickItem: { alignItems: 'center' },
-  quickIcon: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: COLORS.surfaceContainerLow,
-    justifyContent: 'center', alignItems: 'center', marginBottom: 4,
-  },
-  quickLabel: { fontSize: FONT_SIZES.xs, color: COLORS.onSurfaceVariant, fontWeight: '600' },
+  gpsBtn: { position: 'absolute', right: 20, bottom: 350, width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', ...SHADOWS.md },
+  topBar: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 },
+  iconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', ...SHADOWS.md },
+  brandText: { fontSize: 24, fontWeight: '900', color: '#000' },
+  bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, ...SHADOWS.lg },
+  pickupBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceContainerLow, padding: 16, borderRadius: 12, marginBottom: 16 },
+  pickupDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.success },
+  pickupLabel: { fontSize: 10, fontWeight: 'bold', color: COLORS.onSurfaceVariant },
+  pickupValue: { fontSize: 16, fontWeight: 'bold' },
+  suggestionItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  mapPinSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  mapPinSelectorText: { marginLeft: 8, fontWeight: 'bold', color: COLORS.primary },
+  vehicleRow: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: COLORS.surfaceContainerLow, borderRadius: 12, marginBottom: 16 },
+  requestMainBtn: { backgroundColor: COLORS.primary, padding: 18, borderRadius: 12, alignItems: 'center' },
+  requestMainText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  pinBottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#fff', padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  confirmPinText: { color: '#fff', fontWeight: 'bold' },
+  cancelPinBtn: { alignItems: 'center' },
+  cancelPinText: { color: COLORS.onSurfaceVariant },
+  centerPinContainer: { position: 'absolute', top: '50%', left: '50%', marginLeft: -24, marginTop: -48, zIndex: 10 },
+  driverMarker: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' },
+  floatingRouteContainer: { position: 'absolute', left: 16, right: 16, zIndex: 10 },
+  floatingRouteCard: { backgroundColor: '#fff', padding: 12, borderRadius: 12, flexDirection: 'row', alignItems: 'center', ...SHADOWS.md },
+  floatingRouteText: { fontSize: 16, fontWeight: 'bold', flex: 1 },
+  // Map overlay elements
+  mockCarMarker: { position: 'absolute', zIndex: 5 },
+  dropPinShadow: { width: 20, height: 6, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.2)', alignSelf: 'center', marginTop: -4 },
+  // Uber-style always-on pin
+  uberPinWrapper: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', zIndex: 20, pointerEvents: 'none' as any },
+  uberPinContainer: { position: 'absolute', top: '50%', left: '50%', marginLeft: -24, marginTop: -52, zIndex: 20 },
+  pinShadowDot: { width: 16, height: 8, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.25)', alignSelf: 'center', position: 'absolute', top: '50%', left: '50%', marginLeft: -8, marginTop: -4, zIndex: 19 },
+  confirmPinFloating: { position: 'absolute', bottom: 310, left: 20, right: 20, zIndex: 25 },
+  confirmPinBtn: { backgroundColor: COLORS.primary, padding: 16, borderRadius: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginBottom: 12, ...SHADOWS.md },
+  dragHintRow: { paddingTop: 8, paddingBottom: 4 },
+  dragHintText: { fontSize: 12, color: '#9ca3af', textAlign: 'center' },
 });

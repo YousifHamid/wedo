@@ -37,12 +37,13 @@ export const findMatchCandidates = async (
     role: UserRole.DRIVER,
     isOnline: true,
     driverStatus: 'active',
+    isBusy: false,
     walletBalance: { $gt: 0 },
     currentZone: pickupZoneId,
     _id: { $nin: excludeObjectIds },
   })
     .sort({ reliabilityScore: -1, walletBalance: -1 })
-    .limit(10)
+    .limit(20)
     .select('name phone reliabilityScore walletBalance vehicleDetails');
 
   return candidates.map(d => ({

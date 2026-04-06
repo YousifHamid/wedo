@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { Car, UserCheck, ChevronRight, Languages, MapPin } from 'lucide-react-native';
+import { Car, UserCheck, ChevronRight, ChevronLeft, Languages, MapPin } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import useAuthStore from '../../store/useAuthStore';
 import '../../i18n';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
 
@@ -10,6 +11,11 @@ const { width } = Dimensions.get('window');
 export default function WelcomeScreen({ navigation }: any) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
+  const { isServerEnabled, setMockUser } = useAuthStore();
+
+  const handleRoleSelect = (role: 'rider' | 'driver') => {
+    navigation.navigate('Login', { role });
+  };
 
   const toggleLanguage = () => {
     const nextLng = i18n.language === 'ar' ? 'en' : 'ar';
@@ -33,11 +39,12 @@ export default function WelcomeScreen({ navigation }: any) {
       </View>
 
       <View style={styles.cardContainer}>
+        {/* Main Passenger Card */}
         <TouchableOpacity 
-          style={styles.roleCard}
-          onPress={() => navigation.navigate('Login', { role: 'rider' })}
+          style={[styles.roleCard, isRTL && { flexDirection: 'row-reverse' }]}
+          onPress={() => handleRoleSelect('rider')}
         >
-          <View style={styles.roleAccentBar} />
+          <View style={[styles.roleAccentBar, isRTL && { left: undefined, right: 0 }]} />
           <View style={[styles.iconBox, { backgroundColor: COLORS.primaryFixed }]}>
             <Car color={COLORS.primary} size={28} />
           </View>
@@ -45,14 +52,15 @@ export default function WelcomeScreen({ navigation }: any) {
             <Text style={[styles.roleTitle, isRTL && styles.textRight]}>{t('passenger')}</Text>
             <Text style={[styles.roleSub, isRTL && styles.textRight]}>{t('book_rides')}</Text>
           </View>
-          <ChevronRight color={COLORS.outlineVariant} size={22} />
+          {isRTL ? <ChevronLeft color={COLORS.outlineVariant} size={22} /> : <ChevronRight color={COLORS.outlineVariant} size={22} />}
         </TouchableOpacity>
 
+        {/* Main Driver Card */}
         <TouchableOpacity 
-          style={[styles.roleCard, { marginTop: SPACING.xl }]}
-          onPress={() => navigation.navigate('Login', { role: 'driver' })}
+          style={[styles.roleCard, { marginTop: SPACING.lg }, isRTL && { flexDirection: 'row-reverse' }]}
+          onPress={() => handleRoleSelect('driver')}
         >
-          <View style={[styles.roleAccentBar, { backgroundColor: COLORS.success }]} />
+          <View style={[styles.roleAccentBar, { backgroundColor: COLORS.success }, isRTL && { left: undefined, right: 0 }]} />
           <View style={[styles.iconBox, { backgroundColor: '#f0fdf4' }]}>
             <UserCheck color={COLORS.success} size={28} />
           </View>
@@ -60,12 +68,13 @@ export default function WelcomeScreen({ navigation }: any) {
             <Text style={[styles.roleTitle, isRTL && styles.textRight]}>{t('driver')}</Text>
             <Text style={[styles.roleSub, isRTL && styles.textRight]}>{t('earn_money')}</Text>
           </View>
-          <ChevronRight color={COLORS.outlineVariant} size={22} />
+          {isRTL ? <ChevronLeft color={COLORS.outlineVariant} size={22} /> : <ChevronRight color={COLORS.outlineVariant} size={22} />}
         </TouchableOpacity>
       </View>
 
       <View style={styles.footer}>
           <Text style={styles.footerText}>{t('terms_notice')}</Text>
+          <Text style={[styles.footerText, { marginTop: 4, opacity: 0.5 }]}>v1.0.0</Text>
       </View>
     </View>
   );

@@ -50,6 +50,7 @@ export default function FastIntroScreen({ navigation }: any) {
       </Animated.View>
       
       <View style={styles.footer}>
+         <Text style={styles.madeWithTrust}>صمم بأيدي سودانية وبثقة 🇸🇩</Text>
          <Text style={styles.footerText}>بواسطة Wedo</Text>
       </View>
     </View>
@@ -85,10 +86,18 @@ const styles = StyleSheet.create({
   },
   footer: { 
     position: 'absolute', 
-    bottom: 50 
+    bottom: 50,
+    alignItems: 'center'
+  },
+  madeWithTrust: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.primary,
+    fontWeight: '700',
+    marginBottom: 6,
+    letterSpacing: 0.5
   },
   footerText: { 
-    fontSize: FONT_SIZES.sm, 
+    fontSize: FONT_SIZES.xs, 
     color: COLORS.outlineVariant, 
     letterSpacing: 2 
   }

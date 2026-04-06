@@ -31,11 +31,30 @@ export const DEFAULT_PRICING: Record<string, Record<string, { standard: number; 
   z6: { z1: { standard: 5000, premium: 8000 }, z2: { standard: 4500, premium: 7500 }, z3: { standard: 3500, premium: 6000 }, z4: { standard: 6000, premium: 9000 }, z5: { standard: 4500, premium: 7000 } },
 };
 
-// Get fare for zone pair
-export const getZoneFare = (fromId: string, toId: string, type: 'standard' | 'premium' = 'standard'): number => {
+import { PRICING_CONFIG } from './pricing';
+
+// Get fare for zone pair with dynamic surges (Sudan competitive rates)
+export const getZoneFare = (fromId: string, toId: string, type: 'standard' | 'premium' = 'standard', surges: { traffic?: boolean, rush?: boolean, fuel?: boolean } = {}): number => {
   const fromPricing = DEFAULT_PRICING[fromId];
-  if (!fromPricing) return 4000; // fallback
-  const pair = fromPricing[toId];
-  if (!pair) return 4000;
-  return pair[type];
+  let baseFare = 3500; // default fallback
+
+  if (fromPricing && fromPricing[toId]) {
+    baseFare = fromPricing[toId][type];
+  } else {
+    // If not in matrix, estimate by KM (mock distance)
+    const distanceKm = 8; // avg 8km trip
+    const config = type === 'standard' ? PRICING_CONFIG.STANDARD : PRICING_CONFIG.PREMIUM;
+    baseFare = distanceKm * config.base;
+  }
+
+  // Apply Dynamic Surges
+  let multiplier = 1;
+  if (surges.traffic) multiplier += PRICING_CONFIG.SURGES.TRAFFIC;
+  if (surges.rush) multiplier += PRICING_CONFIG.SURGES.RUSH_HOUR;
+  if (surges.fuel) multiplier += PRICING_CONFIG.SURGES.FUEL_SHORTAGE;
+
+  const totalFare = baseFare * multiplier;
+
+  // Round to nearest 50 for realistic SDG pricing
+  return Math.round(totalFare / 50) * 50;
 };

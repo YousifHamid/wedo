@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions, Alert } from 'react-native';
-import { Target, Phone, MessageSquare, X, Bell } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions, Alert, Platform } from 'react-native';
+import { Target, Phone, MessageSquare, X, Bell, MapPin } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import useTripStore from '../../store/useTripStore';
+import useAuthStore from '../../store/useAuthStore';
 import api from '../../services/api';
 import { getSocket } from '../../services/socket';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+import { SafeMapView as MapView, SafeMarker as Marker } from '../../components/MapViewMock';
+
 
 export default function SearchingScreen({ navigation }: any) {
   const { t, i18n } = useTranslation();
@@ -16,6 +19,7 @@ export default function SearchingScreen({ navigation }: any) {
   
   const [phase, setPhase] = useState<'searching' | 'assigned'>('searching');
   const [assignedDriverData, setAssignedDriverData] = useState<any>(null);
+  const [showCancelOptions, setShowCancelOptions] = useState(false);
   const pulseAnim = useRef(new Animated.Value(0.3)).current;
   const slideAnim = useRef(new Animated.Value(300)).current;
 
@@ -29,63 +33,47 @@ export default function SearchingScreen({ navigation }: any) {
     );
     pulse.start();
 
-    // Request trip via API
     const requestTrip = async () => {
+      const { isServerEnabled } = useAuthStore.getState();
+      
+      if (!isServerEnabled) {
+        setTimeout(() => {
+          const mockDriver = {
+            _id: 'mock_driver_99',
+            name: 'Ahmed Captain',
+            nameAr: 'علي السائق',
+            phone: '0912345678',
+            reliabilityScore: 4.8,
+            vehicleDetails: { make: 'Hyundai', model: 'Accent', plateNumber: 'خ ٤ - ١٢٣٤' }
+          };
+          handleDriverAssigned(mockDriver);
+        }, 4000);
+        return;
+      }
+
       try {
         const response = await api.post('/trip/request', {
           pickupZoneId: pickupZone?._id,
           dropoffZoneId: dropoffZone?._id,
           vehicleType: vehicleType,
         });
-
-        const { trip, dispatchedTo, driverAssigned } = response.data;
+        const { trip } = response.data;
         setCurrentTrip(trip);
-
-        if (driverAssigned && trip.driver) {
-          // Driver already assigned
-          handleDriverAssigned(trip.driver);
-        }
-        // Otherwise, listen for socket events
       } catch (error: any) {
-        const msg = error.response?.data?.message;
-        Alert.alert(
-          t('error'),
-          msg || (isRTL ? 'فشل في طلب الرحلة. حاول مرة أخرى.' : 'Failed to request trip. Try again.'),
-          [{ text: 'OK', onPress: () => { resetTrip(); navigation.goBack(); } }]
-        );
+        Alert.alert(t('error'), isRTL ? 'فشل الطلب' : 'Request failed', [{ text: 'OK', onPress: () => { resetTrip(); navigation.goBack(); } }]);
       }
     };
 
     requestTrip();
 
-    // Listen for driver assignment via socket
     const socket = getSocket();
     if (socket) {
-      socket.on('trip:driver_responded', (data: any) => {
-        if (data.response === 'accepted') {
-          handleDriverAssigned(data);
-        }
-      });
-
-      socket.on('trip:status_updated', (data: any) => {
-        if (data.status === 'accepted') {
-          handleDriverAssigned(data);
-        } else if (data.status === 'cancelled') {
-          Alert.alert(
-            isRTL ? 'تم إلغاء الرحلة' : 'Trip Cancelled',
-            isRTL ? 'لا يوجد سائقين متاحين حاليًا' : 'No drivers available at the moment',
-            [{ text: 'OK', onPress: () => { resetTrip(); navigation.goBack(); } }]
-          );
-        }
-      });
+      socket.on('trip:driver_responded', (data: any) => { if (data.response === 'accepted') handleDriverAssigned(data); });
     }
 
     return () => {
       pulse.stop();
-      if (socket) {
-        socket.off('trip:driver_responded');
-        socket.off('trip:status_updated');
-      }
+      if (socket) socket.off('trip:driver_responded');
     };
   }, []);
 
@@ -94,140 +82,154 @@ export default function SearchingScreen({ navigation }: any) {
     setAssignedDriver(driverData);
     setTripStatus('assigned');
     setPhase('assigned');
-    Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 50, friction: 9 }).start();
+    Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true }).start();
   };
 
-  const handleCancel = async () => {
-    try {
-      const trip = useTripStore.getState().currentTrip;
-      if (trip?._id) {
-        await api.put(`/trip/${trip._id}/status`, { status: 'cancelled' });
-      }
-    } catch (e) {}
+  const [showApology, setShowApology] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+
+  const confirmCancel = (reason: string) => {
+    setCancelReason(reason);
+    setShowCancelOptions(false);
+    setShowApology(true);
+  };
+
+  const handleTryAgain = () => {
+    setShowApology(false);
+    setPhase('searching');
+    // Re-trigger the search
+    const { isServerEnabled } = useAuthStore.getState();
+    if (!isServerEnabled) {
+      setTimeout(() => {
+        const mockDriver = {
+          _id: 'mock_driver_99',
+          name: 'Ahmed Captain',
+          nameAr: 'أحمد الكابتن',
+          phone: '0912345678',
+          reliabilityScore: 4.8,
+          vehicleDetails: { make: 'Hyundai', model: 'Accent', plateNumber: 'خ ٤ - ١٢٣٤' }
+        };
+        handleDriverAssigned(mockDriver);
+      }, 4000);
+    }
+  };
+
+  const handleGoHome = () => {
+    setShowApology(false);
     resetTrip();
     navigation.goBack();
   };
 
-  const handleContinue = () => {
-    navigation.navigate('TripStatus');
-  };
-
-  const driverName = assignedDriverData?.name || assignedDriverData?.driverName || 'Driver';
-  const driverNameAr = assignedDriverData?.nameAr || driverName;
-
   return (
     <View style={styles.container}>
-      {/* Map placeholder background */}
       <View style={styles.mapBg}>
-        <View style={styles.mapGrid}>
-          {Array.from({ length: 20 }).map((_, i) => (
-            <View key={i} style={[styles.gridLine, { top: i * 40 }]} />
-          ))}
-        </View>
+        {MapView ? (
+          <MapView style={styles.map} initialRegion={{ latitude: 15.5007, longitude: 32.5599, latitudeDelta: 0.1, longitudeDelta: 0.1 }}>
+            <Marker coordinate={{ latitude: 15.5007, longitude: 32.5599 }}>
+               <View style={styles.userMarker} />
+            </Marker>
+          </MapView>
+        ) : (
+          <View style={styles.mapPlaceholder} />
+        )}
       </View>
 
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.brandText, { color: '#000000' }]}>Wedo</Text>
+        <Text style={styles.brandText}>Wedo</Text>
         <View style={styles.onlineBadge}>
-          <View style={styles.onlineDot} />
-          <Text style={styles.onlineText}>{t('online')}</Text>
+          <View style={styles.onlineDot} /><Text style={styles.onlineText}>{t('online')}</Text>
         </View>
-        <TouchableOpacity>
-          <Bell color={COLORS.onSurfaceVariant} size={22} />
-        </TouchableOpacity>
       </View>
 
-      {/* Searching Card */}
       {phase === 'searching' && (
         <View style={styles.searchCard}>
-          <View style={styles.searchCardInner}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.searchTitle, isRTL && styles.textRight]}>{t('finding_ride')}</Text>
-              <Text style={[styles.searchSub, isRTL && styles.textRight]}>{t('matching_driver')}</Text>
+              <Text style={styles.searchTitle}>{isRTL ? 'جاري البحث عن سائق...' : t('finding_ride')}</Text>
+              <Text style={styles.searchSub}>{isRTL ? 'يتم البحث عن أقرب كابتن لك' : t('matching_driver')}</Text>
             </View>
-            <Animated.View style={[styles.pulseCircle, { opacity: pulseAnim }]}>
-              <Target color={COLORS.primary} size={28} />
-            </Animated.View>
+            <Animated.View style={[styles.pulseCircle, { opacity: pulseAnim }]}><Target color={COLORS.primary} size={28} /></Animated.View>
           </View>
-
-          <View style={styles.searchInfoRow}>
-            <View style={[styles.infoBox, { marginRight: SPACING.md }]}>
-              <Text style={styles.infoLabel}>{t('estimated_price').toUpperCase()}</Text>
-              <Text style={styles.infoValue}>{t('sdg')} {fareEstimate.toLocaleString()}</Text>
-            </View>
-            <View style={styles.infoBox}>
-              <Text style={styles.infoLabel}>{t('vehicle_type').toUpperCase()}</Text>
-              <Text style={styles.infoValue}>
-                {vehicleType === 'premium' ? t('mashi_premium') : t('mashi_standard')}
-              </Text>
-            </View>
-          </View>
-
-          <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
-            <Text style={styles.cancelBtnText}>{t('cancel_request')}</Text>
+          <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowCancelOptions(true)}>
+            <Text style={styles.cancelBtnText}>{isRTL ? 'إلغاء الطلب' : t('cancel_request')}</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Driver Assigned Card */}
       {phase === 'assigned' && (
         <Animated.View style={[styles.assignedContainer, { transform: [{ translateY: slideAnim }] }]}>
-          {/* Driver Info Card */}
           <View style={styles.driverCard}>
-            <View style={styles.driverHeader}>
-              <Text style={[styles.assignedLabel, isRTL && styles.textRight]}>{t('driver_assigned').toUpperCase()}</Text>
-              <View style={styles.etaBadge}>
-                <Text style={styles.etaLabel}>{t('eta')}</Text>
-                <Text style={styles.etaValue}>5</Text>
-                <Text style={styles.etaUnit}>{t('min')}</Text>
+            <Text style={styles.assignedLabel}>{isRTL ? 'تم تعيين الكابتن!' : t('driver_assigned').toUpperCase()}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
+              <View style={styles.driverAvatar}><Text style={{ color: '#fff', fontWeight: 'bold' }}>A</Text></View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.driverName}>{isRTL ? assignedDriverData?.nameAr : assignedDriverData?.name}</Text>
+                <Text style={{ color: 'rgba(255,255,255,0.7)' }}>{assignedDriverData?.vehicleDetails?.make} • {assignedDriverData?.vehicleDetails?.plateNumber}</Text>
               </View>
             </View>
-            <View style={styles.driverRow}>
-              <View style={styles.driverAvatar}>
-                <Text style={styles.avatarText}>{driverName.charAt(0)}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.driverName}>{isRTL ? driverNameAr : driverName}</Text>
-                <Text style={styles.driverRating}>⭐ {assignedDriverData?.reliabilityScore || '4.9'}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Vehicle Info */}
-          <View style={styles.vehicleCard}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.vehicleLabel}>{t('vehicle').toUpperCase()}</Text>
-              <Text style={styles.vehicleName}>
-                {assignedDriverData?.vehicleDetails?.make} {assignedDriverData?.vehicleDetails?.model}
-              </Text>
-              <Text style={styles.vehicleDesc}>
-                {assignedDriverData?.vehicleDetails?.color} • {assignedDriverData?.vehicleDetails?.year}
-              </Text>
-            </View>
-            <View style={styles.plateBadge}>
-              <Text style={styles.plateLabel}>{t('plate_number').toUpperCase()}</Text>
-              <Text style={styles.plateNumber}>{assignedDriverData?.vehicleDetails?.plateNumber || '---'}</Text>
-            </View>
-          </View>
-
-          {/* Action Buttons */}
-          <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.callBtn}>
-              <Phone color={COLORS.onSurface} size={18} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.moreBtn}>
-              <MessageSquare color={COLORS.onSurface} size={18} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Track Trip Button */}
-          <View style={styles.trackRow}>
-            <TouchableOpacity style={styles.trackBtn} onPress={handleContinue}>
-              <Text style={styles.trackBtnText}>{t('trip_in_progress')}</Text>
+            <TouchableOpacity style={styles.trackBtn} onPress={() => navigation.navigate('TripStatus')}>
+               <Text style={styles.trackBtnText}>{isRTL ? 'تتبع الرحلة' : 'Track Trip'}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>
+      )}
+
+      {showCancelOptions && (
+        <View style={styles.cancelOverlay}>
+          <TouchableOpacity style={styles.cancelOverlayBg} onPress={() => setShowCancelOptions(false)} activeOpacity={1} />
+          <View style={styles.cancelSheet}>
+            <View style={styles.cancelHandle} />
+            <Text style={[styles.cancelSheetTitle, isRTL && { textAlign: 'right' }]}>
+              {isRTL ? 'لماذا تريد الإلغاء؟' : 'Why are you cancelling?'}
+            </Text>
+            <Text style={[styles.cancelSheetSub, isRTL && { textAlign: 'right' }]}>
+              {isRTL ? 'ساعدنا نحسن الخدمة بمعرفة السبب' : 'Help us improve by telling us why'}
+            </Text>
+            {[
+              { ar: 'السائق تأخر كتير', en: 'Driver is taking too long' },
+              { ar: 'غيرت رأيي', en: 'Changed my mind' },
+              { ar: 'لقيت وسيلة ثانية', en: 'Found another ride' },
+              { ar: 'حجزت غلط', en: 'Booked by mistake' },
+            ].map((r, i) => (
+              <TouchableOpacity key={i} style={styles.reasonItem} onPress={() => confirmCancel(isRTL ? r.ar : r.en)} activeOpacity={0.7}>
+                <Text style={[styles.reasonText, isRTL && { textAlign: 'right' }]}>{isRTL ? r.ar : r.en}</Text>
+                <View style={styles.reasonArrow}>
+                  <Text style={{ color: '#ccc', fontSize: 16 }}>›</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={styles.keepWaitingBtn} onPress={() => setShowCancelOptions(false)} activeOpacity={0.8}>
+              <Text style={styles.keepWaitingText}>{isRTL ? 'لا، سأنتظر' : "No, I'll wait"}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Apology Screen after Cancellation */}
+      {showApology && (
+        <View style={styles.apologyOverlay}>
+          <View style={styles.apologyCard}>
+            <Text style={styles.apologyEmoji}>😔</Text>
+            <Text style={styles.apologyTitle}>
+              {isRTL ? 'نعتذر منك!' : 'We apologize!'}
+            </Text>
+            <Text style={styles.apologyMsg}>
+              {isRTL 
+                ? 'نأسف أن التجربة لم تكن كما تتوقع. نعمل دائماً على تحسين الخدمة لك.'
+                : "We're sorry this experience wasn't what you expected. We're always working to improve."}
+            </Text>
+            <View style={styles.apologyReasonBox}>
+              <Text style={styles.apologyReasonLabel}>{isRTL ? 'سبب الإلغاء:' : 'Reason:'}</Text>
+              <Text style={styles.apologyReasonText}>{cancelReason}</Text>
+            </View>
+            <TouchableOpacity style={styles.tryAgainBtn} onPress={handleTryAgain} activeOpacity={0.85}>
+              <Text style={styles.tryAgainText}>{isRTL ? 'حاول مرة أخرى' : 'Try Again'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.goHomeBtn} onPress={handleGoHome} activeOpacity={0.8}>
+              <Text style={styles.goHomeText}>{isRTL ? 'العودة للرئيسية' : 'Go Home'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
     </View>
   );
@@ -235,61 +237,50 @@ export default function SearchingScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#e8d5b8' },
-  mapBg: { flex: 1, position: 'relative' },
-  mapGrid: { flex: 1, opacity: 0.15 },
-  gridLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: COLORS.primary },
-  
-  // Header
-  header: { position: 'absolute', top: 50, left: SPACING.xl, right: SPACING.xl, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  brandText: { fontSize: FONT_SIZES.xl, fontWeight: 'bold', color: COLORS.onSurface },
-  onlineBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surfaceContainerLowest, paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.full },
+  mapBg: { flex: 1 },
+  map: { width: '100%', height: '100%' },
+  mapPlaceholder: { flex: 1, backgroundColor: '#e8d5b8' },
+  header: { position: 'absolute', top: 50, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  brandText: { fontSize: 24, fontWeight: 'bold' },
+  onlineBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 8, borderRadius: 20 },
   onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.primary, marginRight: 6 },
-  onlineText: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: COLORS.onSurface },
-
-  textRight: { textAlign: 'right' },
-
-  // Search Card
-  searchCard: { position: 'absolute', top: 100, left: SPACING.xl, right: SPACING.xl, backgroundColor: COLORS.surfaceContainerLowest, borderRadius: RADIUS['2xl'], padding: SPACING['2xl'], ...SHADOWS.lg },
-  searchCardInner: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.xl },
-  searchTitle: { fontSize: FONT_SIZES.xl, fontWeight: 'bold', color: COLORS.primary },
-  searchSub: { fontSize: FONT_SIZES.sm, color: COLORS.onSurfaceVariant, marginTop: 4 },
-  pulseCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.surfaceContainerLow, justifyContent: 'center', alignItems: 'center' },
-  searchInfoRow: { flexDirection: 'row', marginBottom: SPACING.xl },
-  infoBox: { flex: 1, backgroundColor: COLORS.surfaceContainerLow, borderRadius: RADIUS.lg, padding: SPACING.lg },
-  infoLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: COLORS.onSurfaceVariant, letterSpacing: 1, marginBottom: 4 },
-  infoValue: { fontSize: FONT_SIZES.xl, fontWeight: 'bold', color: COLORS.onSurface },
-  cancelBtn: { backgroundColor: COLORS.surfaceContainerHigh, paddingVertical: SPACING.lg, borderRadius: RADIUS.xl, alignItems: 'center' },
-  cancelBtnText: { fontSize: FONT_SIZES.md, fontWeight: '600', color: COLORS.onSurface },
-
-  // Assigned
-  assignedContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, borderTopLeftRadius: RADIUS['2xl'], borderTopRightRadius: RADIUS['2xl'], overflow: 'hidden' },
-  driverCard: { backgroundColor: COLORS.primaryContainer, padding: SPACING['2xl'], paddingBottom: SPACING.xl },
-  driverHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.lg },
-  assignedLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: COLORS.onPrimaryContainer, letterSpacing: 1.5 },
-  etaBadge: { backgroundColor: COLORS.primaryFixed, borderRadius: RADIUS.lg, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, alignItems: 'center' },
-  etaLabel: { fontSize: 9, fontWeight: '700', color: COLORS.primary, letterSpacing: 1 },
-  etaValue: { fontSize: FONT_SIZES['2xl'], fontWeight: 'bold', color: COLORS.primary },
-  etaUnit: { fontSize: FONT_SIZES.xs, fontWeight: '600', color: COLORS.primary },
-  driverRow: { flexDirection: 'row', alignItems: 'center' },
-  driverAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginRight: SPACING.lg },
-  avatarText: { color: COLORS.onPrimary, fontSize: FONT_SIZES.xl, fontWeight: 'bold' },
-  driverName: { fontSize: FONT_SIZES['2xl'], fontWeight: 'bold', color: COLORS.onPrimary },
-  driverRating: { fontSize: FONT_SIZES.sm, color: COLORS.onPrimaryContainer, marginTop: 2 },
-
-  // Vehicle
-  vehicleCard: { backgroundColor: COLORS.surfaceContainerLowest, padding: SPACING['2xl'], flexDirection: 'row', alignItems: 'center' },
-  vehicleLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: COLORS.onSurfaceVariant, letterSpacing: 1, marginBottom: 4 },
-  vehicleName: { fontSize: FONT_SIZES.lg, fontWeight: 'bold', color: COLORS.onSurface },
-  vehicleDesc: { fontSize: FONT_SIZES.sm, color: COLORS.onSurfaceVariant, marginTop: 2 },
-  plateBadge: { backgroundColor: COLORS.primaryContainer, borderRadius: RADIUS.lg, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md, alignItems: 'center' },
-  plateLabel: { fontSize: 9, fontWeight: '700', color: COLORS.onPrimaryContainer, letterSpacing: 1 },
-  plateNumber: { fontSize: FONT_SIZES.xl, fontWeight: 'bold', color: COLORS.onPrimary, marginTop: 2 },
-
-  // Actions
-  actionRow: { flexDirection: 'row', backgroundColor: COLORS.surfaceContainerLowest, paddingHorizontal: SPACING['2xl'], paddingVertical: SPACING.xl, justifyContent: 'center' },
-  callBtn: { width: 50, height: 50, backgroundColor: COLORS.surfaceContainerHigh, borderRadius: RADIUS.lg, justifyContent: 'center', alignItems: 'center', marginRight: SPACING.md },
-  moreBtn: { width: 50, height: 50, backgroundColor: COLORS.surfaceContainerHigh, borderRadius: RADIUS.lg, justifyContent: 'center', alignItems: 'center' },
-  trackRow: { backgroundColor: COLORS.surfaceContainerLowest, paddingHorizontal: SPACING['2xl'], paddingVertical: SPACING.lg, paddingBottom: 40 },
-  trackBtn: { backgroundColor: COLORS.primary, paddingVertical: SPACING.xl, borderRadius: RADIUS.xl, alignItems: 'center', ...SHADOWS.md },
-  trackBtnText: { color: COLORS.onPrimary, fontSize: FONT_SIZES.lg, fontWeight: 'bold' },
+  onlineText: { fontSize: 12, fontWeight: 'bold' },
+  searchCard: { position: 'absolute', bottom: 40, left: 20, right: 20, backgroundColor: '#fff', padding: 24, borderRadius: 24, ...SHADOWS.lg },
+  searchTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.primary },
+  searchSub: { color: COLORS.onSurfaceVariant },
+  pulseCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#eee', justifyContent: 'center', alignItems: 'center' },
+  cancelBtn: { backgroundColor: '#eee', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 20 },
+  cancelBtnText: { fontWeight: 'bold' },
+  assignedContainer: { position: 'absolute', bottom: 0, left: 0, right: 0 },
+  driverCard: { backgroundColor: COLORS.primary, padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  assignedLabel: { color: 'rgba(255,255,255,0.8)', fontWeight: 'bold', fontSize: 12 },
+  driverAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
+  driverName: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  trackBtn: { backgroundColor: '#fff', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 20 },
+  trackBtnText: { color: COLORS.primary, fontWeight: 'bold' },
+  cancelOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', zIndex: 100 },
+  cancelOverlayBg: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
+  cancelSheet: { backgroundColor: '#fff', padding: 24, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 40 },
+  cancelHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#e5e5e5', alignSelf: 'center', marginBottom: 20 },
+  cancelSheetTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 4, color: '#1f2937' },
+  cancelSheetSub: { fontSize: 13, color: '#9ca3af', marginBottom: 20 },
+  reasonItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
+  reasonText: { fontSize: 15, color: '#374151', flex: 1 },
+  reasonArrow: { width: 24, height: 24, justifyContent: 'center', alignItems: 'center' },
+  keepWaitingBtn: { backgroundColor: COLORS.primary, padding: 16, borderRadius: 14, alignItems: 'center', marginTop: 20 },
+  keepWaitingText: { fontWeight: 'bold', color: '#fff', fontSize: 15 },
+  userMarker: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.primary, borderWidth: 3, borderColor: '#fff' },
+  // Apology styles
+  apologyOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 200, padding: 24 },
+  apologyCard: { backgroundColor: '#fff', borderRadius: 24, padding: 32, alignItems: 'center', width: '100%', maxWidth: 340, ...SHADOWS.lg },
+  apologyEmoji: { fontSize: 48, marginBottom: 12 },
+  apologyTitle: { fontSize: 22, fontWeight: 'bold', color: '#1f2937', marginBottom: 8 },
+  apologyMsg: { fontSize: 14, color: '#6b7280', textAlign: 'center', lineHeight: 22, marginBottom: 16 },
+  apologyReasonBox: { backgroundColor: '#f9fafb', padding: 12, borderRadius: 12, width: '100%', marginBottom: 20, borderWidth: 1, borderColor: '#f3f4f6' },
+  apologyReasonLabel: { fontSize: 11, color: '#9ca3af', marginBottom: 4 },
+  apologyReasonText: { fontSize: 14, fontWeight: '600', color: '#374151' },
+  tryAgainBtn: { backgroundColor: COLORS.primary, paddingVertical: 16, paddingHorizontal: 32, borderRadius: 14, width: '100%', alignItems: 'center', marginBottom: 12 },
+  tryAgainText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  goHomeBtn: { paddingVertical: 12, width: '100%', alignItems: 'center' },
+  goHomeText: { color: '#9ca3af', fontSize: 14, fontWeight: '600' },
 });

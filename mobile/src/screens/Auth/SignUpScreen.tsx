@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Image } from 'react-native';
 import useAuthStore from '../../store/useAuthStore';
 import api from '../../services/api';
 import { connectSocket } from '../../services/socket';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import { Phone, Lock, ChevronLeft, UserPlus, User, MapPin } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { COLORS, SPACING, RADIUS, FONT_SIZES } from '../../constants/theme';
@@ -14,6 +15,7 @@ export default function SignUpScreen({ route, navigation }: any) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [locationGranted, setLocationGranted] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -41,6 +43,10 @@ export default function SignUpScreen({ route, navigation }: any) {
   const handleSignUp = async () => {
     if (!name.trim() || !phone.trim() || !password.trim()) {
       Alert.alert(t('error'), isRTL ? 'يرجى ملء جميع الحقول' : 'Please fill in all fields');
+      return;
+    }
+    if (role === 'driver' && !profileImage) {
+      Alert.alert(t('error'), isRTL ? 'صورة الشخصية إلزامية للسائق' : 'Profile image is mandatory for drivers');
       return;
     }
     if (!locationGranted) {
@@ -74,6 +80,22 @@ export default function SignUpScreen({ route, navigation }: any) {
     }
   };
 
+  const handlePickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+      if (!result.canceled) {
+        setProfileImage(result.assets[0].uri);
+      }
+    } catch (e) {
+      Alert.alert(isRTL ? 'خطأ' : 'Error', isRTL ? 'حدث خطأ أثناء فتح المعرض. يرجى تثبيت expo-image-picker.' : 'Failed to open gallery.');
+    }
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
@@ -83,6 +105,24 @@ export default function SignUpScreen({ route, navigation }: any) {
       <View style={styles.header}>
         <Text style={[styles.title, isRTL && styles.textRight]}>{t('sign_up')}</Text>
         <Text style={[styles.subtitle, isRTL && styles.textRight]}>{t('signup_subtitle')}</Text>
+      </View>
+
+      {/* Profile Image Section */}
+      <View style={styles.imageSection}>
+        <TouchableOpacity 
+          style={[styles.imageCircle, role === 'driver' && !profileImage && { borderColor: COLORS.error }]} 
+          onPress={handlePickImage}
+        >
+          {profileImage ? (
+            <Image source={{ uri: profileImage }} style={{ width: '100%', height: '100%', borderRadius: 50 }} />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+               <User size={40} color={COLORS.outlineVariant} />
+               <Text style={styles.imageLabel}>{isRTL ? 'صورة البروفايل' : 'Profile Image'}</Text>
+               {role === 'driver' && <Text style={styles.mandatoryText}>*{isRTL ? 'إلزامية' : 'Mandatory'}</Text>}
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       <View style={styles.form}>
@@ -171,4 +211,12 @@ const styles = StyleSheet.create({
   footerContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING['2xl'] },
   footerText: { color: COLORS.onSurfaceVariant },
   footerLink: { color: COLORS.primary, fontWeight: 'bold' },
+  
+  // Image styles
+  imageSection: { alignItems: 'center', marginBottom: SPACING.xl },
+  imageCircle: { width: 120, height: 120, borderRadius: 60, backgroundColor: COLORS.surfaceContainerLow, borderWidth: 2, borderColor: COLORS.outlineVariant, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  imagePlaceholder: { alignItems: 'center' },
+  imageLabel: { fontSize: 10, color: COLORS.onSurfaceVariant, marginTop: 4, fontWeight: '600' },
+  imageBadge: { position: 'absolute', bottom: 10, right: 10, backgroundColor: COLORS.primary, width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' },
+  mandatoryText: { fontSize: 9, color: COLORS.error, fontWeight: '700', marginTop: 2 },
 });

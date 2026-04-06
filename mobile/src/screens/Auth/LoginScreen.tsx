@@ -13,7 +13,7 @@ export default function LoginScreen({ route, navigation }: any) {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const role = route.params?.role || 'rider';
-  const { setUser } = useAuthStore();
+  const { setUser, isServerEnabled } = useAuthStore();
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -22,21 +22,27 @@ export default function LoginScreen({ route, navigation }: any) {
       return;
     }
 
-    setLoading(true);
-    try {
-      const response = await api.post('/auth/login', { phone, password, role });
-      const { user, token } = response.data;
-      setUser(user, token);
-      // Connect socket after successful login
-      connectSocket();
-    } catch (error: any) {
-      const msg = error.response?.data?.message;
-      Alert.alert(
-        t('error'),
-        msg || (isRTL ? 'فشل تسجيل الدخول: تأكد من البيانات الصحيحة' : 'Login failed: Check your credentials')
-      );
-    } finally {
-      setLoading(false);
+    if (isServerEnabled) {
+      setLoading(true);
+      try {
+        const response = await api.post('/auth/login', { phone, password, role });
+        const { user, token } = response.data;
+        setUser(user, token);
+        // Connect socket after successful login
+        connectSocket();
+      } catch (error: any) {
+        const msg = error.response?.data?.message;
+        Alert.alert(
+          t('error'),
+          msg || (isRTL ? 'فشل تسجيل الدخول: تأكد من البيانات الصحيحة وتشغيل الخادم' : 'Login failed: Check your credentials and server connection')
+        );
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Demo Mode: Mock Login, accepts any dummy text to emulate real flow.
+      useAuthStore.getState().setMockUser(role);
+      // Wait for state then potentially navigate if needed, but AppNavigator handles it automatically via token.
     }
   };
 
