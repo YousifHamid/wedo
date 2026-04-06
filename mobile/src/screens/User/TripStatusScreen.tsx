@@ -21,34 +21,12 @@ export default function TripStatusScreen({ navigation }: any) {
   );
   const [showDeviationAlert, setShowDeviationAlert] = useState(false);
   const [deviationDismissed, setDeviationDismissed] = useState(false);
+  const [showSafetyModal, setShowSafetyModal] = useState(false);
   const [vehiclePos, setVehiclePos] = useState({ latitude: 15.5007, longitude: 32.5599 });
 
   const getZoneLabel = (zone: any) => isRTL ? zone?.nameAr : zone?.name;
 
   useEffect(() => {
-    // Simulation for demo movement
-    const moveInterval = setInterval(() => {
-       setVehiclePos(prev => ({
-          latitude: prev.latitude + (Math.random() - 0.5) * 0.0005,
-          longitude: prev.longitude + (Math.random() - 0.5) * 0.0005,
-       }));
-    }, 3000);
-
-    const { isServerEnabled } = useAuthStore.getState();
-    if (!isServerEnabled) {
-      const timers: any[] = [];
-      timers.push(setTimeout(() => setTripPhase('arrived'), 8000));
-      timers.push(setTimeout(() => setTripPhase('in_progress'), 15000));
-      timers.push(setTimeout(() => {
-        setTripPhase('completed');
-        setTripStatus('completed');
-        navigation.navigate('TripComplete');
-      }, 25000));
-      return () => {
-        clearInterval(moveInterval);
-        timers.forEach(t => clearTimeout(t));
-      };
-    }
 
     const socket = getSocket();
     if (!socket) return;
@@ -63,7 +41,6 @@ export default function TripStatusScreen({ navigation }: any) {
     });
 
     return () => {
-      clearInterval(moveInterval);
       socket.off('trip:status_updated');
     };
   }, []);
@@ -89,11 +66,26 @@ export default function TripStatusScreen({ navigation }: any) {
 
   const handleShareTrip = async () => {
     try {
-      await Share.share({ message: isRTL ? 'تتبع رحلتي مع ودّو!' : 'Track my Wedo trip!' });
+      const driverName = assignedDriver?.name || (isRTL ? 'الكابتن' : 'Your driver');
+      const vehicle = assignedDriver?.vehicleDetails?.make ? `${assignedDriver.vehicleDetails.make} - ${assignedDriver.vehicleDetails.plateNumber}` : '';
+      const trackingLink = `https://wedo.sd/track/${currentTrip?._id || 'mock123'}`;
+      
+      const message = isRTL 
+        ? `أنا في رحلة مع ودّو 💚\nالسائق: ${driverName}\nالسيارة: ${vehicle}\n\nتتبع رحلتي مباشرة من هنا:\n${trackingLink}`
+        : `I'm on a trip with Wedo 💚\nDriver: ${driverName}\nVehicle: ${vehicle}\n\nTrack my ride live here:\n${trackingLink}`;
+
+      await Share.share({ message });
     } catch (e) {}
   };
 
-  const handleComplaint = () => Alert.alert(isRTL ? 'مركز الأمان' : 'Safety Center', isRTL ? 'تم استلام بلاغك. سيتم المتابعة من فريقنا' : 'Report received');
+  const handleComplaint = () => {
+    setShowSafetyModal(true);
+  };
+  
+  const submitSafetyReport = (reason: string) => {
+    setShowSafetyModal(false);
+    Alert.alert(isRTL ? 'تم استلام بلاغك' : 'Report Received', isRTL ? `سيتابع فريق الدعم حالة: ${reason}` : `Our support will follow up on: ${reason}`);
+  };
 
   const handleAddStopAtRide = () => {
      addStop({ _id: 'new_stop', name: 'New Stop', nameAr: 'وقفة جديدة' });
@@ -200,6 +192,38 @@ export default function TripStatusScreen({ navigation }: any) {
 
         <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}><Text style={styles.cancelBtnText}>{t('cancel_request')}</Text></TouchableOpacity>
       </View>
+
+      {/* Safety / SOS Modal */}
+      <Modal visible={showSafetyModal} transparent animationType="slide">
+        <View style={styles.modalBg}>
+          <View style={styles.modalContent}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <ShieldAlert color={COLORS.error} size={48} />
+              <Text style={{ fontSize: 20, fontWeight: 'bold', marginTop: 8, color: COLORS.error }}>
+                {isRTL ? 'مركز الأمان والطوارئ' : 'Safety & SOS Center'}
+              </Text>
+            </View>
+
+            <TouchableOpacity style={styles.safetyOptionBtn} onPress={() => submitSafetyReport(isRTL ? 'القيادة بتهور' : 'Reckless Driving')}>
+              <Text style={styles.safetyOptionText}>{isRTL ? 'القيادة بتهور / سرعة زائدة' : 'Reckless / Speeding'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.safetyOptionBtn} onPress={() => submitSafetyReport(isRTL ? 'السيارة لا تتطابق' : 'Wrong Vehicle')}>
+              <Text style={styles.safetyOptionText}>{isRTL ? 'السيارة أو السائق لا يتطابق' : 'Vehicle/Driver mismatch'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.safetyOptionBtn} onPress={() => submitSafetyReport(isRTL ? 'تعطل السيارة' : 'Car Breakdown')}>
+              <Text style={styles.safetyOptionText}>{isRTL ? 'تعطل السيارة في الطريق' : 'Car breakdown'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.safetyOptionBtn, { backgroundColor: '#fee2e2' }]} onPress={() => { setShowSafetyModal(false); Alert.alert('999', isRTL ? 'جاري الاتصال بالشرطة...' : 'Calling police...'); }}>
+              <Text style={[styles.safetyOptionText, { color: COLORS.error, fontWeight: 'bold' }]}>{isRTL ? 'الاتصال بالطوارئ (الشرطة)' : 'Call Emergency (Police)'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.cancelBtn, { marginTop: 12 }]} onPress={() => setShowSafetyModal(false)}>
+              <Text style={styles.cancelBtnText}>{t('cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -240,5 +264,11 @@ const styles = StyleSheet.create({
   safetyActionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 12 },
   cancelBtn: { backgroundColor: '#eee', padding: 16, borderRadius: 12, alignItems: 'center' },
   cancelBtnText: { fontWeight: 'bold' },
-  carMarker: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' }
+  carMarker: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' },
+
+  // Modal
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
+  safetyOptionBtn: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee', borderRadius: 12, marginVertical: 4 },
+  safetyOptionText: { fontSize: 16, textAlign: 'center' },
 });

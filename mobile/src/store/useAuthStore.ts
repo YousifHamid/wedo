@@ -41,23 +41,14 @@ const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       token: null,
-      isServerEnabled: false, // Default to offline/mock mode for demo
+      isServerEnabled: true, // Default to production mode
       setUser: (user, token) => set({ user, token }),
       updateUser: (updates) => set((state) => ({
         user: state.user ? { ...state.user, ...updates } : null,
       })),
       setServerEnabled: (enabled) => set({ isServerEnabled: enabled }),
       setMockUser: (role) => {
-        const mockUser: User = {
-          _id: `mock_${role}_123`,
-          name: role === 'rider' ? 'Guest Rider' : 'Guest Captain',
-          phone: '0912345678',
-          role: role,
-          walletBalance: 15000,
-          isOnline: true,
-          driverStatus: 'active',
-        };
-        set({ user: mockUser, token: 'mock_token_abc' });
+        // Mock deprecated for production.
       },
       logout: () => set({ user: null, token: null }),
     }),

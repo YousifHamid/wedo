@@ -120,30 +120,10 @@ export default function UserHomeScreen({ navigation }: any) {
     })();
   }, []);
 
-  // Initialize and move mock drivers
+  // Mock drivers removed for production
   useEffect(() => {
-    const baseLat = location?.latitude || 15.5007;
-    const baseLng = location?.longitude || 32.5599;
-    
-    const initialDrivers = Array.from({ length: 6 }).map((_, i) => ({
-      id: `driver-${i}`,
-      latitude: baseLat + (Math.random() - 0.5) * 0.02,
-      longitude: baseLng + (Math.random() - 0.5) * 0.02,
-      rotation: Math.random() * 360,
-    }));
-    setDrivers(initialDrivers);
-
-    const interval = setInterval(() => {
-      setDrivers(prev => prev.map(d => ({
-        ...d,
-        latitude: d.latitude + (Math.random() - 0.5) * 0.0002,
-        longitude: d.longitude + (Math.random() - 0.5) * 0.0002,
-        rotation: d.rotation + (Math.random() - 0.5) * 5,
-      })));
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [location?.latitude]);
+    // Sockets for live nearby drivers can be implemented here later
+  }, []);
 
   useEffect(() => {
     const fetchLocations = async () => {

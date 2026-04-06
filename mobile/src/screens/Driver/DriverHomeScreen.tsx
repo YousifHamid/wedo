@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Modal, Alert, Keyboard, TextInput, Switch, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Modal, Alert, Keyboard, TextInput, Switch, Platform, Linking } from 'react-native';
 import { Power, MapPin, Navigation, User, Bell, Wallet, Clock, Car, TrendingUp, Banknote, Layers, PlusCircle, Shield, Crown, X, ChevronRight, Search } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import * as Location from 'expo-location';
@@ -134,27 +134,6 @@ export default function DriverHomeScreen({ navigation }: any) {
   }, [tripStep, activeTrip, deviationDismissed]);
 
   useEffect(() => {
-    const { isServerEnabled } = useAuthStore.getState();
-    if (!isServerEnabled) {
-      const canReceiveNewTrip = (isOnline && !activeTrip && !incomingTrip) || 
-                                 (isOnline && activeTrip && tripStep === 'started' && !incomingTrip);
-      if (canReceiveNewTrip) {
-        const delay = activeTrip ? 8000 : 5000;
-        const timer = setTimeout(() => {
-          setIncomingTrip({
-            tripId: `mock_${Date.now()}`,
-            pickupZone: activeTrip ? 'Arkaweet' : 'Khartoum North',
-            dropoffZone: activeTrip ? 'Bahri Central' : 'Arkaweet',
-            fareEstimate: activeTrip ? 3200 : 4500,
-            rider: { name: activeTrip ? 'Ahmed Ali' : 'Mando Guest' },
-            isQueuedTrip: !!activeTrip
-          });
-          setCountdown(DISPATCH_COUNTDOWN);
-        }, delay);
-        return () => clearTimeout(timer);
-      }
-      return;
-    }
 
     const socket = getSocket();
     if (!socket) return;
@@ -278,6 +257,19 @@ export default function DriverHomeScreen({ navigation }: any) {
     setDeviationDismissed(false);
     setTripStartLocation(null);
     setAddChangeToWallet(false);
+    setReceivedCash('');
+
+    // Simulate sending a Push Notification for Store Rating
+    setTimeout(() => {
+      Alert.alert(
+        isRTL ? '🌟 إشعار من ودّو' : '🌟 Wedo Notification',
+        isRTL ? 'كيف كانت تجربتك في القيادة معنا؟ يسعدنا تقييمك لنا بـ 5 نجوم في المتجر لدعمنا!' : 'How was your driving experience? Please rate us 5 stars on the store to support us!',
+        [
+          { text: isRTL ? 'لاحقاً' : 'Later', style: 'cancel' },
+          { text: isRTL ? 'تقييم الآن' : 'Rate Now', onPress: () => Linking.openURL('https://play.google.com/store/apps/details?id=com.wedo.driver') }
+        ]
+      );
+    }, 1500);
 
     Alert.alert(title, msg);
   };
@@ -393,12 +385,54 @@ export default function DriverHomeScreen({ navigation }: any) {
       )}
 
       <Modal visible={!!incomingTrip} transparent animationType="slide">
-        <View style={styles.modalOverlay}><View style={styles.requestCard}>
-          <Text style={styles.requestTitle}>{isRTL ? `طلب رحلة جديد (${countdown}ث)` : `${t('new_trip_request')} (${countdown}s)`}</Text>
-          <Text style={styles.fareInfoValue}>{t('sdg')} {incomingTrip?.fareEstimate}</Text>
-          <TouchableOpacity style={styles.acceptBtn} onPress={handleAccept}><Text style={styles.acceptBtnText}>{t('accept_trip')}</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.rejectBtn} onPress={handleRejectTrip}><Text style={styles.rejectBtnText}>{t('reject_trip')}</Text></TouchableOpacity>
-        </View></View>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.requestCard, { paddingBottom: 24 }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={styles.requestTitle}>{isRTL ? `طلب رحلة جديد` : t('new_trip_request')}</Text>
+              <View style={{ backgroundColor: COLORS.error, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{countdown} {isRTL ? 'ث' : 's'}</Text>
+              </View>
+            </View>
+
+            <View style={{ backgroundColor: COLORS.surfaceContainerLowest, padding: 16, borderRadius: 12, marginBottom: 20 }}>
+              {/* Pickup */}
+              <View style={[styles.tripDetailRow, isRTL && { flexDirection: 'row-reverse' }]}>
+                <MapPin color={COLORS.primary} size={18} />
+                <View style={{ flex: 1, marginHorizontal: 12 }}>
+                  <Text style={[styles.tripDetailLabel, isRTL && { textAlign: 'right' }]}>{isRTL ? 'من' : 'From'}</Text>
+                  <Text style={[styles.tripDetailAddress, isRTL && { textAlign: 'right' }]} numberOfLines={1}>{incomingTrip?.pickupZone || '...'}</Text>
+                </View>
+              </View>
+              
+              {/* Divider */}
+              <View style={[styles.routeDivider, isRTL && { alignSelf: 'flex-end', marginRight: 9, marginLeft: 0 }]} />
+
+              {/* Dropoff */}
+              <View style={[styles.tripDetailRow, isRTL && { flexDirection: 'row-reverse' }]}>
+                <Navigation color="#f59e0b" size={18} />
+                <View style={{ flex: 1, marginHorizontal: 12 }}>
+                  <Text style={[styles.tripDetailLabel, isRTL && { textAlign: 'right' }]}>{isRTL ? 'إلى' : 'To'}</Text>
+                  <Text style={[styles.tripDetailAddress, isRTL && { textAlign: 'right' }]} numberOfLines={1}>{incomingTrip?.dropoffZone || '...'}</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={{ alignItems: 'center', marginBottom: 24 }}>
+              <Text style={{ color: COLORS.onSurfaceVariant, fontSize: 13, marginBottom: 4 }}>{isRTL ? 'الأجرة المقدرة' : 'Estimated Fare'}</Text>
+              <Text style={{ fontSize: 32, fontWeight: '900', color: COLORS.primary }}>
+                {t('sdg')} {incomingTrip?.fareEstimate?.toLocaleString() || '0'}
+              </Text>
+            </View>
+
+            <TouchableOpacity style={styles.acceptBtn} onPress={handleAccept} activeOpacity={0.8}>
+              <Text style={styles.acceptBtnText}>{isRTL ? 'قبول الرحلة' : t('accept_trip')}</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.rejectBtn} onPress={handleRejectTrip} activeOpacity={0.8}>
+              <Text style={styles.rejectBtnText}>{isRTL ? 'رفض' : t('reject_trip')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
 
       <Modal visible={showTripSummary} transparent animationType="fade">
@@ -546,12 +580,16 @@ const styles = StyleSheet.create({
   navBtnSmall: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#eee', justifyContent: 'center', alignItems: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   requestCard: { backgroundColor: '#fff', padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
-  requestTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  requestTitle: { fontSize: 18, fontWeight: 'bold' },
+  tripDetailRow: { flexDirection: 'row', alignItems: 'center' },
+  tripDetailLabel: { fontSize: 12, color: COLORS.onSurfaceVariant, marginBottom: 2 },
+  tripDetailAddress: { fontSize: 14, fontWeight: 'bold', color: COLORS.onSurface },
+  routeDivider: { height: 16, width: 2, backgroundColor: '#e5e5e5', marginLeft: 8, marginVertical: 4 },
   fareInfoValue: { fontSize: 24, fontWeight: '900', marginBottom: 16 },
-  acceptBtn: { backgroundColor: COLORS.success, padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 8 },
-  acceptBtnText: { color: '#fff', fontWeight: 'bold' },
-  rejectBtn: { padding: 8, alignItems: 'center' },
-  rejectBtnText: { color: '#999' },
+  acceptBtn: { backgroundColor: COLORS.success, padding: 16, borderRadius: 16, alignItems: 'center', marginBottom: 8 },
+  acceptBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  rejectBtn: { padding: 12, alignItems: 'center' },
+  rejectBtnText: { color: COLORS.onSurfaceVariant, fontWeight: '600' },
   modalOverlayCenter: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   summaryCard: { width: '100%', backgroundColor: '#fff', borderRadius: 16, padding: 20, alignItems: 'center' },
   summaryTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },

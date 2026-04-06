@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Star, Banknote, CheckCircle, Smartphone, ArrowRight } from 'lucide-react-native';
-import { Linking, View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, Animated, Easing, ScrollView } from 'react-native';
+import { Linking, View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, Animated, Easing, ScrollView, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import useTripStore from '../../store/useTripStore';
 import useAuthStore from '../../store/useAuthStore';
@@ -45,6 +45,18 @@ export default function TripCompleteScreen({ navigation }: any) {
     
     resetTrip();
     navigation.navigate('UserHome');
+
+    // Simulate sending a Push Notification for Store Rating
+    setTimeout(() => {
+      Alert.alert(
+        isRTL ? '🌟 إشعار من ودّو' : '🌟 Wedo Notification',
+        isRTL ? 'كيف كانت تجربتك؟ يسعدنا تقييمك لنا بـ 5 نجوم في المتجر لدعمنا والاستمرار في تقديم الأفضل!' : 'How was your experience? Please rate us 5 stars on the store to support us!',
+        [
+          { text: isRTL ? 'لاحقاً' : 'Later', style: 'cancel' },
+          { text: isRTL ? 'تقييم الآن' : 'Rate Now', onPress: () => Linking.openURL('https://play.google.com/store/apps/details?id=com.wedo.app') }
+        ]
+      );
+    }, 1500);
   };
 
   const getRatingText = () => {
