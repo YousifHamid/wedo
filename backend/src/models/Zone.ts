@@ -14,6 +14,8 @@ const zoneSchema = new Schema<IZone>({
   nameAr: { type: String, required: true },
   description: { type: String },
   descriptionAr: { type: String },
+  lat: { type: Number, default: 0 },
+  lng: { type: Number, default: 0 },
   isActive: { type: Boolean, default: true },
   order: { type: Number, default: 0 },
 }, { timestamps: true });

@@ -15,6 +15,10 @@ export const PRICING_CONFIG = {
     base: 1200, // default mid-point
   },
 
+  // Company Profit / Commissions
+  COMMISSION_RATE: 0.15, // 15% of total fare goes to Wedo
+  SERVICE_FEE: 500,      // Fixed booking service fee added to each trip
+
   // Surge Multipliers
   SURGES: {
     TRAFFIC: 0.20,      // +20%

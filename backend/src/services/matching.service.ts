@@ -135,6 +135,18 @@ export const startDispatch = async (tripId: string): Promise<MatchCandidate | nu
   return nextDriver;
 };
 
+// Haversine formula to calculate distance between two coordinates in KM
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Earth radius in KM
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 // Get fare for a zone pair
 export const getFareEstimate = async (
   fromZoneId: string,
@@ -147,10 +159,43 @@ export const getFareEstimate = async (
     isActive: true,
   });
 
-  if (!pricing) return null;
+  if (pricing) {
+    return {
+      fare: vehicleType === 'premium' ? pricing.premiumFare : pricing.baseFare,
+      commissionRate: pricing.commissionRate,
+    };
+  }
 
-  return {
-    fare: vehicleType === 'premium' ? pricing.premiumFare : pricing.baseFare,
-    commissionRate: pricing.commissionRate,
-  };
+  // Fallback: Calculate semi-realistic fare based on zone coordinates
+  const Zone = mongoose.model('Zone');
+  const fromZone = await Zone.findById(fromZoneId);
+  const toZone = await Zone.findById(toZoneId);
+
+  if (fromZone && toZone && (fromZone as any).lat && (toZone as any).lat) {
+     const distanceKm = calculateDistance(
+        (fromZone as any).lat, (fromZone as any).lng, 
+        (toZone as any).lat, (toZone as any).lng
+     );
+     
+     // SUDAN SEMI-REALISTIC CALCULATION:
+     // Base rate: 750 (std) or 1200 (premium) per KM
+     // Base pickup: 2000 (std) or 3500 (premium)
+     const perKm = vehicleType === 'premium' ? 1200 : 750;
+     const basePickup = vehicleType === 'premium' ? 3500 : 2000;
+     
+     let fare = basePickup + (distanceKm * perKm);
+     
+     // Wedo 10% competitive discount
+     fare = fare * 0.90;
+     
+     // Round to nearest 50
+     const roundedFare = Math.round(fare / 50) * 50;
+
+     return {
+        fare: Math.max(roundedFare, vehicleType === 'premium' ? 3000 : 1500),
+        commissionRate: 15, // Default 15% profit for the company
+     };
+  }
+
+  return null;
 };
