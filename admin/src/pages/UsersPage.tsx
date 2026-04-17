@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Ban, Trash2, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Users, Search, Ban, Trash2, ShieldCheck, RefreshCw, Edit, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 
@@ -7,6 +7,8 @@ export default function UsersPage() {
   const { t, i18n } = useTranslation();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ name: '', phone: '', email: '' });
   const isRTL = i18n.language === 'ar';
 
   const fetchUsers = async () => {
@@ -41,6 +43,21 @@ export default function UsersPage() {
       setUsers(users.filter(u => u._id !== id));
     } catch (err) {
       alert('Delete failed');
+    }
+  };
+
+  const handleEditClick = (user: any) => {
+    setEditingUser(user);
+    setEditForm({ name: user.name, phone: user.phone, email: user.email || '' });
+  };
+
+  const handleUpdateUser = async () => {
+    try {
+      await api.put(`/admin/users/${editingUser._id}`, editForm);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (err) {
+      alert('Update failed');
     }
   };
 
@@ -103,6 +120,9 @@ export default function UsersPage() {
                   </td>
                   <td className="p-4">
                     <div className={`flex gap-2 ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                      <button onClick={() => handleEditClick(user)} className="p-1.5 text-blue-600 bg-blue-50 rounded-lg transition-colors">
+                        <Edit size={18} />
+                      </button>
                       <button onClick={() => handleSuspend(user._id)} className={`p-1.5 rounded-lg ${user.isBlocked ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`} title={user.isBlocked ? "Unsuspend" : "Suspend"}>
                         {user.isBlocked ? <ShieldCheck size={18} /> : <Ban size={18} />}
                       </button>
@@ -117,6 +137,39 @@ export default function UsersPage() {
           </table>
         </div>
       </div>
+
+      {editingUser && (
+        <div className={`fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+              <div className={`flex justify-between items-center mb-6 border-b border-gray-100 pb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                 <h2 className="text-xl font-bold text-gray-800">{isRTL ? 'تعديل بيانات الراكب' : 'Edit Rider'}</h2>
+                 <button onClick={() => setEditingUser(null)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X size={20} /></button>
+              </div>
+              <div className="space-y-4">
+                 <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">{isRTL ? 'الاسم' : 'Name'}</label>
+                    <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className={`w-full px-4 py-2 border rounded-xl outline-none focus:border-emerald-500 ${isRTL ? 'text-right' : ''}`} />
+                 </div>
+                 <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">{isRTL ? 'رقم الهاتف' : 'Phone Number'}</label>
+                    <input type="text" value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} className={`w-full px-4 py-2 border rounded-xl outline-none focus:border-emerald-500 ${isRTL ? 'text-right' : ''}`} />
+                 </div>
+                 <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">{isRTL ? 'البريد الإلكتروني' : 'Email'}</label>
+                    <input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className={`w-full px-4 py-2 border rounded-xl outline-none focus:border-emerald-500 ${isRTL ? 'text-right' : ''}`} />
+                 </div>
+              </div>
+              <div className={`mt-8 flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                 <button onClick={handleUpdateUser} className="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition">
+                    {isRTL ? 'حفظ التعديلات' : 'Save Changes'}
+                 </button>
+                 <button onClick={() => setEditingUser(null)} className="px-6 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200 transition">
+                    {isRTL ? 'إلغاء' : 'Cancel'}
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 }

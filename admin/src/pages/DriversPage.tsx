@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Ban, Trash2, ShieldCheck, RefreshCw, Car, Star, Navigation } from 'lucide-react';
+import { Users, Search, Ban, Trash2, ShieldCheck, RefreshCw, Car, Star, Navigation, Edit, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 
@@ -8,6 +8,8 @@ export default function DriversPage() {
   const [drivers, setDrivers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, pending, active, blocked
+  const [editingDriver, setEditingDriver] = useState<any>(null);
+  const [editForm, setEditForm] = useState({ name: '', phone: '', reliabilityScore: 0 });
   const isRTL = i18n.language === 'ar';
 
   const fetchDrivers = async () => {
@@ -43,6 +45,22 @@ export default function DriversPage() {
       fetchDrivers();
     } catch (err) {
       alert('Delete failed');
+    }
+  };
+
+  const handleEditClick = (driver: any) => {
+    setEditingDriver(driver);
+    setEditForm({ name: driver.name, phone: driver.phone, reliabilityScore: driver.reliabilityScore });
+  };
+
+  const handleUpdateDriver = async () => {
+    try {
+      // Endpoint depends on your backend logic; assuming generic users API edit
+      await api.put(`/admin/users/${editingDriver._id}`, editForm);
+      setEditingDriver(null);
+      fetchDrivers();
+    } catch (err) {
+      alert('Update failed');
     }
   };
 
@@ -151,6 +169,9 @@ export default function DriversPage() {
                             {isRTL ? 'تفعيل' : 'Approve'}
                          </button>
                       )}
+                      <button onClick={() => handleEditClick(driver)} className="p-1.5 text-blue-600 bg-blue-50 rounded-lg transition-colors">
+                        <Edit size={18} />
+                      </button>
                       <button onClick={() => handleAction(driver._id, driver.driverStatus === 'blocked' ? 'unblock' : 'block')} className={`p-1.5 rounded-lg ${driver.driverStatus === 'blocked' ? 'text-emerald-600 bg-emerald-50' : 'text-amber-600 bg-amber-50'}`}>
                         {driver.driverStatus === 'blocked' ? <ShieldCheck size={18} /> : <Ban size={18} />}
                       </button>
@@ -165,6 +186,39 @@ export default function DriversPage() {
           </table>
         </div>
       </div>
+
+      {editingDriver && (
+        <div className={`fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+              <div className={`flex justify-between items-center mb-6 border-b border-gray-100 pb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                 <h2 className="text-xl font-bold text-gray-800">{isRTL ? 'تعديل بيانات السائق' : 'Edit Driver'}</h2>
+                 <button onClick={() => setEditingDriver(null)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X size={20} /></button>
+              </div>
+              <div className="space-y-4">
+                 <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">{isRTL ? 'الاسم' : 'Name'}</label>
+                    <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className={`w-full px-4 py-2 border rounded-xl outline-none focus:border-emerald-500 ${isRTL ? 'text-right' : ''}`} />
+                 </div>
+                 <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">{isRTL ? 'رقم الهاتف' : 'Phone Number'}</label>
+                    <input type="text" value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} className={`w-full px-4 py-2 border rounded-xl outline-none focus:border-emerald-500 ${isRTL ? 'text-right' : ''}`} />
+                 </div>
+                 <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">{isRTL ? 'نقاط الموثوقية (التقييم الأصلي × 20)' : 'Reliability Score (Rating x 20)'}</label>
+                    <input type="number" value={editForm.reliabilityScore} onChange={e => setEditForm({...editForm, reliabilityScore: Number(e.target.value)})} className={`w-full px-4 py-2 border rounded-xl outline-none focus:border-emerald-500 ${isRTL ? 'text-right' : ''}`} />
+                 </div>
+              </div>
+              <div className={`mt-8 flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                 <button onClick={handleUpdateDriver} className="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition">
+                    {isRTL ? 'حفظ التعديلات' : 'Save Changes'}
+                 </button>
+                 <button onClick={() => setEditingDriver(null)} className="px-6 bg-gray-100 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-200 transition">
+                    {isRTL ? 'إلغاء' : 'Cancel'}
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 }

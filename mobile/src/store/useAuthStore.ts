@@ -29,10 +29,11 @@ interface AuthState {
   user: User | null;
   token: string | null;
   isServerEnabled: boolean;
+  originalRole: 'rider' | 'driver' | 'admin' | null;
   setUser: (user: User, token: string) => void;
   updateUser: (updates: Partial<User>) => void;
   setServerEnabled: (enabled: boolean) => void;
-  setMockUser: (role: 'rider' | 'driver') => void;
+  switchRole: () => void;
   logout: () => void;
 }
 
@@ -41,16 +42,29 @@ const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       token: null,
-      isServerEnabled: true, // Default to production mode
-      setUser: (user, token) => set({ user, token }),
+      isServerEnabled: true,
+      originalRole: null,
+      setUser: (user, token) => set({ user, token, originalRole: user.role }),
       updateUser: (updates) => set((state) => ({
         user: state.user ? { ...state.user, ...updates } : null,
       })),
+      switchRole: () => set((state) => {
+        if (!state.user) return state;
+        const actualOriginalRole = state.originalRole || state.user.role;
+        // Only drivers can switch between driver and rider
+        if (actualOriginalRole === 'driver') {
+          const newRole = state.user.role === 'driver' ? 'rider' : 'driver';
+          // Dynamically change the name for testing reviewers when switching
+          const newName = state.user._id?.includes('mock') 
+            ? (newRole === 'driver' ? 'Reviewer Captain' : 'Reviewer Passenger')
+            : state.user.name;
+          return { originalRole: actualOriginalRole, user: { ...state.user, role: newRole, name: newName } };
+        }
+        return state;
+      }),
       setServerEnabled: (enabled) => set({ isServerEnabled: enabled }),
-      setMockUser: (role) => {
-        // Mock deprecated for production.
-      },
-      logout: () => set({ user: null, token: null }),
+
+      logout: () => set({ user: null, token: null, originalRole: null }),
     }),
     {
       name: 'wedo-auth-storage',

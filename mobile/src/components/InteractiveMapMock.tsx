@@ -202,7 +202,10 @@ export default function InteractiveMapMock({ style, drivers = [], onDragStart, o
       {/* ── Center pin — ALWAYS FIXED at screen center ── */}
       <View style={styles.pinArea} pointerEvents="none">
         <Animated.View style={[styles.pinWrapper, { transform: [{ translateY: pinTranslateY }] }]}>
-          <MapPin size={52} color={COLORS.primary} strokeWidth={2.2} />
+          <View style={styles.luxuryPin}>
+            <View style={styles.luxuryPinInner} />
+            <View style={styles.luxuryPinStem} />
+          </View>
         </Animated.View>
         {/* Shadow dot under pin */}
         <Animated.View
@@ -232,7 +235,7 @@ const styles = StyleSheet.create({
   },
   gridBg: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#e8f5e9',
+    backgroundColor: 'transparent',
   },
   lineH: {
     position: 'absolute',
@@ -295,8 +298,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pinWrapper: {
-    // Pin tip should be at center, so offset up by pin height/2
     marginBottom: 52,
+    alignItems: 'center',
+  },
+  luxuryPin: {
+    alignItems: 'center',
+  },
+  luxuryPinInner: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#000000',
+    borderWidth: 6,
+    borderColor: '#1C1C1E',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+    zIndex: 2,
+  },
+  luxuryPinStem: {
+    width: 4,
+    height: 24,
+    backgroundColor: '#1C1C1E',
+    borderBottomLeftRadius: 2,
+    borderBottomRightRadius: 2,
+    marginTop: -4,
+    zIndex: 1,
   },
   pinShadow: {
     width: 18,

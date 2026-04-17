@@ -151,32 +151,97 @@ export const getPendingTopUps = async (req: Request, res: Response) => {
   }
 };
 
-// Utility: Deduct commission from driver wallet after trip completion
-export const deductCommission = async (driverId: string, tripId: string, fare: number, commissionRate: number) => {
+// Utility: Deduct commission from driver wallet after trip completion, applying 9% and loyalty rules
+export const deductCommission = async (driverId: string, riderId: string, tripId: string, fare: number, overrideCommission: number = 9) => {
   const driver = await User.findById(driverId);
+  const rider = await User.findById(riderId);
   if (!driver) throw new Error('Driver not found');
 
-  let finalCommissionRate = commissionRate;
-  let description = `Commission deducted (${commissionRate}%)`;
+  let finalCommissionRate = overrideCommission; // Ensure base is 9%
+  let description = `Commission deducted (${finalCommissionRate}%)`;
+  let isFreeForRider = false;
 
-  // Apply new rule: First 5 trips are free. After that, 50% commission for the driver.
-  if (driver.totalTrips < 5) {
+  // --- RIDER LOYALTY --- 
+  // Give Rider 5% of the fare as Points!
+  const earnedPoints = Math.round(fare * 0.05);
+
+  if (rider) {
+    if (rider.loyaltyStreak >= 3) {
+      // 4th trip is Free via Streak!
+      isFreeForRider = true;
+      rider.loyaltyStreak = 0;
+      rider.loyaltyPoints += earnedPoints;
+      description = `Commission deducted (${finalCommissionRate}%) - Rider Free via Streak`;
+    } else if (rider.loyaltyPoints >= fare) {
+      // Free trip by redeeming accumulated loyalty points!
+      isFreeForRider = true;
+      rider.loyaltyPoints -= fare;
+      rider.loyaltyStreak += 1;
+      description = `Commission deducted (${finalCommissionRate}%) - Rider Free via Points`;
+    } else {
+      // Normal cash trip, rider earns points
+      rider.loyaltyStreak += 1;
+      rider.loyaltyPoints += earnedPoints;
+    }
+    rider.totalTrips += 1;
+    await rider.save();
+  }
+
+  // --- DRIVER LOYALTY ---
+  // Zero commission on 11th trip
+  if (driver.loyaltyStreak >= 10) {
     finalCommissionRate = 0;
-    description = `Free Trip (First 5 trips grace period)`;
+    description = `Loyalty Reward: 0% Commission (11th Consecutive Trip)`;
+    driver.loyaltyStreak = 0;
   } else {
-    // 50% of the commission goes to the company, the other 50% "stays with driver" 
-    // which means we only deduct half of the standard rate.
-    finalCommissionRate = commissionRate / 2;
-    description = `Discounted Commission (${finalCommissionRate}% instead of ${commissionRate}%)`;
+    driver.loyaltyStreak += 1;
   }
 
   const commission = Math.round(fare * (finalCommissionRate / 100));
-  
-  driver.walletBalance -= commission;
-  driver.totalEarnings += (fare - commission);
+  const driverEarnings = fare - commission;
+
+  if (isFreeForRider) {
+    // Rider paid nothing! The system subsidizes the trip by directly adding driver's earnings to their wallet
+    driver.walletBalance += driverEarnings;
+    driver.totalEarnings += driverEarnings;
+    
+    await Transaction.create({
+      user: driverId,
+      amount: driverEarnings,
+      type: TransactionType.CREDIT,
+      description: `Rider Free Trip Subsidization (System compensated)`,
+      trip: tripId,
+      balanceAfter: driver.walletBalance,
+    });
+  } else {
+    // Normal cash trip! Driver collected full cash, so we deduct the app's commission component.
+    driver.walletBalance -= commission;
+    driver.totalEarnings += driverEarnings;
+    
+    if (commission > 0) {
+      await Transaction.create({
+        user: driverId,
+        amount: commission,
+        type: TransactionType.DEBIT,
+        description: description,
+        trip: tripId,
+        balanceAfter: driver.walletBalance,
+      });
+    } else {
+       await Transaction.create({
+        user: driverId,
+        amount: 0,
+        type: TransactionType.CREDIT,
+        description: description,
+        trip: tripId,
+        balanceAfter: driver.walletBalance,
+      });
+    }
+  }
+
   driver.totalTrips += 1;
 
-  // Block driver only if wallet balance becomes negative
+  // Block driver only if wallet balance becomes strictly negative
   if (driver.walletBalance < 0) {
     driver.isOnline = false;
     driver.driverStatus = 'blocked' as any;
@@ -184,27 +249,5 @@ export const deductCommission = async (driverId: string, tripId: string, fare: n
 
   await driver.save();
 
-  // Log commission transaction if any
-  if (commission > 0) {
-    await Transaction.create({
-      user: driverId,
-      amount: commission,
-      type: TransactionType.DEBIT,
-      description: description,
-      trip: tripId,
-      balanceAfter: driver.walletBalance,
-    });
-  } else {
-    // Log free trip
-    await Transaction.create({
-      user: driverId,
-      amount: 0,
-      type: TransactionType.CREDIT,
-      description: `Free Trip Reward: No commission deducted`,
-      trip: tripId,
-      balanceAfter: driver.walletBalance,
-    });
-  }
-
-  return { commission, newBalance: driver.walletBalance, isBlocked: driver.walletBalance < 0 };
+  return { commission, newBalance: driver.walletBalance, isBlocked: driver.walletBalance < 0, isFreeForRider };
 };

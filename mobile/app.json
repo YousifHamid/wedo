@@ -25,12 +25,14 @@
         }
       },
       "adaptiveIcon": {
-        "backgroundColor": "#2AA84A",
-        "foregroundImage": "./assets/appstore.png"
+        "backgroundColor": "#ffffff",
+        "foregroundImage": "./assets/playstore.png"
       },
+      "icon": "./assets/playstore.png",
       "package": "com.wedo.app"
     },
     "ios": {
+      "icon": "./assets/appstore.png",
       "supportsTablet": true,
       "bundleIdentifier": "com.wedo.app",
       "infoPlist": {
@@ -48,7 +50,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "e2b5cc9b-bdc9-4bf7-ba39-0b6b6e786d8a"
+        "projectId": "3194ff27-a585-4e8f-8938-146b82d6e4df"
       }
     },
     "plugins": [
@@ -61,6 +63,7 @@
           "cameraPermission": "Wedo needs access to your camera to take your profile picture."
         }
       ]
-    ]
+    ],
+    "owner": "yousif.hamid"
   }
 }

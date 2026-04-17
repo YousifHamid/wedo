@@ -11,6 +11,7 @@ import UsersPage from './pages/UsersPage';
 import TransactionsPage from './pages/TransactionsPage';
 import DirectTopupPage from './pages/DirectTopupPage';
 import StaffPage from './pages/StaffPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="direct-topup" element={<DirectTopupPage />} />
             <Route path="staff" element={<StaffPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
          </Route>
       </Routes>
     </BrowserRouter>

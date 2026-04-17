@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions, Alert, Platform } from 'react-native';
-import { Target, Phone, MessageSquare, X, Bell, MapPin } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions, Alert, Platform, Linking } from 'react-native';
+import { Target, Phone, X, Bell, MapPin } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import useTripStore from '../../store/useTripStore';
 import useAuthStore from '../../store/useAuthStore';
@@ -10,6 +10,7 @@ import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/th
 
 const { width, height } = Dimensions.get('window');
 import { SafeMapView as MapView, SafeMarker as Marker } from '../../components/MapViewMock';
+import { DARK_MAP_STYLE } from '../../constants/mapStyle';
 
 
 export default function SearchingScreen({ navigation }: any) {
@@ -124,7 +125,11 @@ export default function SearchingScreen({ navigation }: any) {
     <View style={styles.container}>
       <View style={styles.mapBg}>
         {MapView ? (
-          <MapView style={styles.map} initialRegion={{ latitude: 15.5007, longitude: 32.5599, latitudeDelta: 0.1, longitudeDelta: 0.1 }}>
+          <MapView 
+            style={styles.map} 
+            customMapStyle={DARK_MAP_STYLE}
+            initialRegion={{ latitude: 15.5007, longitude: 32.5599, latitudeDelta: 0.1, longitudeDelta: 0.1 }}
+          >
             <Marker coordinate={{ latitude: 15.5007, longitude: 32.5599 }}>
                <View style={styles.userMarker} />
             </Marker>
@@ -159,13 +164,26 @@ export default function SearchingScreen({ navigation }: any) {
       {phase === 'assigned' && (
         <Animated.View style={[styles.assignedContainer, { transform: [{ translateY: slideAnim }] }]}>
           <View style={styles.driverCard}>
-            <Text style={styles.assignedLabel}>{isRTL ? 'تم تعيين الكابتن!' : t('driver_assigned').toUpperCase()}</Text>
+            <Text style={styles.assignedLabel}>{isRTL ? 'تم تعيين الكابتن! 🟢' : 'CAPTAIN ASSIGNED! 🟢'}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 10 }}>
-              <View style={styles.driverAvatar}><Text style={{ color: '#fff', fontWeight: 'bold' }}>A</Text></View>
+              <View style={styles.driverAvatar}><Text style={{ color: '#fff', fontWeight: 'bold' }}>K</Text></View>
               <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.driverName}>{isRTL ? assignedDriverData?.nameAr : assignedDriverData?.name}</Text>
+                <Text style={styles.driverName}>
+                  {isRTL ? 'الكابتن ' : 'Captain '}
+                  {isRTL ? (assignedDriverData?.nameAr || assignedDriverData?.name) : assignedDriverData?.name}
+                </Text>
                 <Text style={{ color: 'rgba(255,255,255,0.7)' }}>{assignedDriverData?.vehicleDetails?.make} • {assignedDriverData?.vehicleDetails?.plateNumber}</Text>
               </View>
+              {/* زر اتصال مباشر */}
+              <TouchableOpacity
+                style={styles.callIconBtn}
+                onPress={() => {
+                  const phone = assignedDriverData?.phone;
+                  if (phone) Linking.openURL(`tel:${phone}`);
+                }}
+              >
+                <Phone size={18} color="#fff" />
+              </TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.trackBtn} onPress={() => navigation.navigate('TripStatus')}>
                <Text style={styles.trackBtnText}>{isRTL ? 'تتبع الرحلة' : 'Track Trip'}</Text>
@@ -245,17 +263,18 @@ const styles = StyleSheet.create({
   onlineBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 8, borderRadius: 20 },
   onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.primary, marginRight: 6 },
   onlineText: { fontSize: 12, fontWeight: 'bold' },
-  searchCard: { position: 'absolute', bottom: 40, left: 20, right: 20, backgroundColor: '#fff', padding: 24, borderRadius: 24, ...SHADOWS.lg },
-  searchTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.primary },
-  searchSub: { color: COLORS.onSurfaceVariant },
-  pulseCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#eee', justifyContent: 'center', alignItems: 'center' },
-  cancelBtn: { backgroundColor: '#eee', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 20 },
-  cancelBtnText: { fontWeight: 'bold' },
+  searchCard: { position: 'absolute', bottom: 40, left: 20, right: 20, backgroundColor: '#FFFFFF', padding: 24, borderRadius: 24, ...SHADOWS.lg },
+  searchTitle: { fontSize: 22, fontWeight: '900', color: '#000000', marginBottom: 4 },
+  searchSub: { color: '#6B7280', fontSize: 14, fontWeight: '600' },
+  pulseCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' },
+  cancelBtn: { backgroundColor: '#1C1C1E', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 20 },
+  cancelBtnText: { fontWeight: 'bold', color: '#FFFFFF' },
   assignedContainer: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   driverCard: { backgroundColor: COLORS.primary, padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   assignedLabel: { color: 'rgba(255,255,255,0.8)', fontWeight: 'bold', fontSize: 12 },
   driverAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
   driverName: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  callIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)' },
   trackBtn: { backgroundColor: '#fff', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 20 },
   trackBtnText: { color: COLORS.primary, fontWeight: 'bold' },
   cancelOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'flex-end', zIndex: 100 },

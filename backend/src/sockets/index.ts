@@ -34,13 +34,20 @@ export default function setupSockets(io: Server) {
       socket.join(`zone_${user.currentZone.toString()}`);
     }
 
-    // Driver location update
-    socket.on('driver:location_update', async (data: { lat: number, lng: number }) => {
+    // Driver location update — saves to DB and broadcasts to active trip room
+    socket.on('driver:location_update', async (data: { lat: number, lng: number, tripId?: string }) => {
       if (user.role === 'driver') {
         await User.findByIdAndUpdate(user._id, {
           location: { type: 'Point', coordinates: [data.lng, data.lat] },
           isOnline: true
         });
+        // Broadcast live position to rider in the trip room
+        if (data.tripId) {
+          io.to(`trip_${data.tripId}`).emit('driver:position', {
+            lat: data.lat,
+            lng: data.lng,
+          });
+        }
       }
     });
 
@@ -97,6 +104,44 @@ export default function setupSockets(io: Server) {
         driverId: user._id,
         response: data.response,
       });
+    });
+
+    // ─── Anonymous In-Trip Communication ───────────────────────────
+    // All messages pass through the server — real phone numbers are NEVER shared.
+
+    // Anonymous chat message relay
+    socket.on('trip:message', (data: { tripId: string; text: string }) => {
+      const senderRole = user.role; // 'driver' or 'rider'
+      const senderName = senderRole === 'driver' ? 'الكابتن' : 'الزبون';
+      io.to(`trip_${data.tripId}`).emit('trip:message_received', {
+        text: data.text,
+        senderRole,
+        senderName,
+        timestamp: Date.now(),
+      });
+    });
+
+    // Anonymous call request — rider/driver initiates, server relays (no real numbers shared)
+    socket.on('trip:call_request', (data: { tripId: string }) => {
+      const callerRole = user.role;
+      // Relay to the OTHER party in the trip room (broadcast to room except sender)
+      socket.to(`trip_${data.tripId}`).emit('trip:incoming_call', {
+        callerRole,
+        callerLabel: callerRole === 'driver' ? 'الكابتن' : 'الزبون',
+        tripId: data.tripId,
+      });
+    });
+
+    socket.on('trip:call_accepted', (data: { tripId: string }) => {
+      socket.to(`trip_${data.tripId}`).emit('trip:call_connected', { tripId: data.tripId });
+    });
+
+    socket.on('trip:call_declined', (data: { tripId: string }) => {
+      socket.to(`trip_${data.tripId}`).emit('trip:call_ended', { reason: 'declined', tripId: data.tripId });
+    });
+
+    socket.on('trip:call_ended', (data: { tripId: string }) => {
+      socket.to(`trip_${data.tripId}`).emit('trip:call_ended', { reason: 'ended', tripId: data.tripId });
     });
 
     socket.on('disconnect', async () => {

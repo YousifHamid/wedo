@@ -9,6 +9,7 @@ import tripRoutes from './routes/trip.routes';
 import zoneRoutes from './routes/zone.routes';
 import walletRoutes from './routes/wallet.routes';
 import adminRoutes from './routes/admin.routes';
+import whatsappRoutes from './routes/whatsapp.routes';
 import setupSockets from './sockets';
 
 dotenv.config();
@@ -35,6 +36,7 @@ app.use('/api/trip', tripRoutes);
 app.use('/api/zones', zoneRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 // Socket.io Setup
 setupSockets(io);

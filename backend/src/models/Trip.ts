@@ -50,6 +50,9 @@ export interface ITrip extends Document {
   currentDispatchDriver?: mongoose.Types.ObjectId;
   rating?: number;
   ratingComment?: string;
+  // Phone number masking (like Uber) — temporary proxy numbers per trip
+  proxyPhoneRider?: string;   // Rider calls this → forwards to driver
+  proxyPhoneDriver?: string;  // Driver calls this → forwards to rider
 }
 
 const tripSchema = new Schema<ITrip>({
@@ -85,6 +88,8 @@ const tripSchema = new Schema<ITrip>({
   currentDispatchDriver: { type: Schema.Types.ObjectId, ref: 'User' },
   rating: { type: Number, min: 1, max: 5 },
   ratingComment: { type: String },
+  proxyPhoneRider: { type: String },
+  proxyPhoneDriver: { type: String },
 }, { timestamps: true });
 
 tripSchema.index({ pickupZone: 1, status: 1 });

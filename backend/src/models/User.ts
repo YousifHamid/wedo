@@ -43,6 +43,8 @@ export interface IUser extends Document {
   isBlocked: boolean; // For blocking riders
   isBusy: boolean;    // For queuing logic
   permissions?: string[]; // For staff (admin/super_admin) to control screen access
+  loyaltyStreak: number; // Tracks consecutive completed trips for rewards
+  loyaltyPoints: number; // For Rider points system (Cashback/Redemption)
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -74,6 +76,8 @@ const userSchema = new Schema<IUser>({
   isBlocked: { type: Boolean, default: false },
   isBusy: { type: Boolean, default: false },
   permissions: { type: [String], default: [] },
+  loyaltyStreak: { type: Number, default: 0 },
+  loyaltyPoints: { type: Number, default: 0 },
 }, { timestamps: true });
 
 // Index for geospatial queries

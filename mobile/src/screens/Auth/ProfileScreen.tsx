@@ -1,28 +1,38 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Alert, ActivityIndicator, Animated } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import useAuthStore from '../../store/useAuthStore';
 import api from '../../services/api';
 import { useTranslation } from 'react-i18next';
 import WalletBalanceCard from '../../components/WalletBalanceCard';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
-import { Phone, Mail, Car, Settings, LogOut, ChevronLeft, ChevronRight, Star, Wallet, Clock, TrendingUp } from 'lucide-react-native';
+import { Phone, Mail, Car, Settings, LogOut, ChevronLeft, ChevronRight, Star, Wallet, Clock, MessageSquare } from 'lucide-react-native';
 
 export default function ProfileScreen({ navigation }: any) {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
-  const { user, logout, setUser, token } = useAuthStore();
+  const { user, logout, setUser, token, switchRole, originalRole } = useAuthStore();
   const isDriver = user?.role === 'driver';
   const [loading, setLoading] = useState(false);
   const [localAvatar, setLocalAvatar] = useState<string | null>(null);
 
-  // Sync profile data from server on mount
+  // Animation for feedback message
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  // Sync profile data + Show feedback message
   useEffect(() => {
+    // ── 1. Show Feedback UI ────────────────────────────────────────────────
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.delay(5000), // Show for 5 seconds
+      Animated.timing(fadeAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
+    ]).start();
+
+    // ── 2. Sync Profile ───────────────────────────────────────────────────
     const fetchProfile = async () => {
       try {
         const response = await api.get('/auth/profile');
         if (response.data.user) {
-          // Keep the token we have, update user data
           setUser(response.data.user, token as string);
         }
       } catch (e) {
@@ -33,10 +43,16 @@ export default function ProfileScreen({ navigation }: any) {
   }, []);
 
   const handleLogout = () => {
-    Alert.alert(t('logout'), t('logout_confirm'), [
-      { text: t('cancel'), style: 'cancel' },
-      { text: t('logout'), onPress: () => logout(), style: 'destructive' },
-    ]);
+    Alert.alert(
+      isRTL ? 'شكراً لمراجعة التطبيق!' : 'Thank you for the review!',
+      isRTL 
+        ? 'يرجى إرسال ملاحظاتكم وتقييمكم إلى يوسف للتطوير أو التأكيد.\n\nهل أنت متأكد من تسجيل الخروج؟'
+        : 'Please send your feedback and rating to Yousif for development and confirmation.\n\nAre you sure you want to log out?',
+      [
+        { text: t('cancel'), style: 'cancel' },
+        { text: t('logout'), onPress: () => logout(), style: 'destructive' },
+      ]
+    );
   };
 
   const handlePickAvatar = async () => {
@@ -64,13 +80,24 @@ export default function ProfileScreen({ navigation }: any) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 60 }}>
-      {/* Header */}
-      <View style={[styles.headerBar, isRTL && { flexDirection: 'row-reverse' }]}>
+    <View style={{ flex: 1 }}>
+      {/* Feedback Overlay Message */}
+      <Animated.View style={[styles.feedbackOverlay, { opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [-20, 0] }) }] }]}>
+        <MessageSquare color="#fff" size={20} />
+        <Text style={styles.feedbackText}>
+          {isRTL 
+            ? 'يرجى إرسال ملاحظاتكم وتقييمكم إلى يوسف للتطوير أو التأكيد'
+            : 'Please send your feedback and rating to Yousif for development and confirmation'}
+        </Text>
+      </Animated.View>
+
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 60 }}>
+        {/* Header */}
+        <View style={[styles.headerBar, isRTL && { flexDirection: 'row-reverse' }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ChevronLeft color={COLORS.onSurface} size={28} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('profile')}</Text>
+        <Text style={styles.headerTitle}>{isRTL ? (isDriver ? 'الملف الشخصي للكابتن' : 'الملف الشخصي للزبون') : (isDriver ? 'Captain Profile' : 'Passenger Profile')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -82,7 +109,7 @@ export default function ProfileScreen({ navigation }: any) {
             style={styles.avatar}
           />
           <TouchableOpacity style={styles.editBtn} onPress={handlePickAvatar}>
-            <Settings color="#fff" size={16} />
+            <Settings color="#000000" size={16} />
           </TouchableOpacity>
         </View>
         <Text style={styles.userName}>{user?.name}</Text>
@@ -104,7 +131,7 @@ export default function ProfileScreen({ navigation }: any) {
       {/* Stats - Real data from user object */}
       <View style={styles.statsRow}>
         <View style={styles.statItem}>
-          <Star color="#f59e0b" fill="#f59e0b" size={20} />
+          <Star color="#FFFFFF" fill="#FFFFFF" size={20} />
           <Text style={styles.statValue}>{user?.reliabilityScore ? (user.reliabilityScore / 20).toFixed(2) : '5.00'}</Text>
           <Text style={styles.statLabel}>{t('rating')}</Text>
         </View>
@@ -113,7 +140,7 @@ export default function ProfileScreen({ navigation }: any) {
           <Text style={styles.statLabel}>{isDriver ? t('trips_count') : t('rides_count')}</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: COLORS.success }]}>
+          <Text style={[styles.statValue, { color: '#111111' }]}>
             {t('sdg')} {getRelativeValue(isDriver ? user?.totalEarnings : 0)}
           </Text>
           <Text style={styles.statLabel}>{isDriver ? t('total_earnings') : t('spent')}</Text>
@@ -128,20 +155,47 @@ export default function ProfileScreen({ navigation }: any) {
         <View style={styles.actionGrid}>
           {isDriver && (
             <TouchableOpacity style={[styles.actionCard, isRTL && { flexDirection: 'row-reverse' }]} onPress={() => navigation.navigate('DriverWallet')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#e8f5e9' }, isRTL && { marginRight: 0, marginLeft: 14 }]}>
-                <Wallet color={COLORS.primary} size={24} />
+              <View style={[styles.actionIcon, { backgroundColor: '#FFFFFF' }, isRTL && { marginRight: 0, marginLeft: 14 }]}>
+                <Wallet color="#000000" size={24} />
               </View>
               <Text style={[styles.actionLabel, isRTL && { textAlign: 'right' }]}>{t('tab_wallet')}</Text>
-              {isRTL ? <ChevronLeft color={COLORS.outlineVariant} size={18} /> : <ChevronRight color={COLORS.outlineVariant} size={18} />}
+              {isRTL ? <ChevronLeft color="#111111" size={18} /> : <ChevronRight color="#111111" size={18} />}
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={[styles.actionCard, isRTL && { flexDirection: 'row-reverse' }]}>
-            <View style={[styles.actionIcon, { backgroundColor: '#fff3e0' }, isRTL && { marginRight: 0, marginLeft: 14 }]}>
-              <Clock color={COLORS.warning} size={24} />
+
+          <TouchableOpacity style={[styles.actionCard, isRTL && { flexDirection: 'row-reverse' }]} onPress={() => i18n.changeLanguage(isRTL ? 'en' : 'ar')}>
+            <View style={[styles.actionIcon, { backgroundColor: '#FFFFFF' }, isRTL && { marginRight: 0, marginLeft: 14 }]}>
+              <Text style={{color: '#000000', fontSize: 14, fontWeight: '900'}}>{isRTL ? 'EN' : 'AR'}</Text>
+            </View>
+            <Text style={[styles.actionLabel, isRTL && { textAlign: 'right' }]}>{isRTL ? 'تغيير اللغة (English)' : 'Change Language (عربي)'}</Text>
+            {isRTL ? <ChevronLeft color="#111111" size={18} /> : <ChevronRight color="#111111" size={18} />}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.actionCard, isRTL && { flexDirection: 'row-reverse' }]} onPress={() => navigation.navigate('TripHistory')}>
+            <View style={[styles.actionIcon, { backgroundColor: '#FFFFFF' }, isRTL && { marginRight: 0, marginLeft: 14 }]}>
+              <Clock color="#000000" size={24} />
             </View>
             <Text style={[styles.actionLabel, isRTL && { textAlign: 'right' }]}>{t('tab_trips')}</Text>
-            {isRTL ? <ChevronLeft color={COLORS.outlineVariant} size={18} /> : <ChevronRight color={COLORS.outlineVariant} size={18} />}
+            {isRTL ? <ChevronLeft color="#111111" size={18} /> : <ChevronRight color="#111111" size={18} />}
           </TouchableOpacity>
+
+          {(originalRole === 'driver' || user?.role === 'driver') && (
+            <TouchableOpacity 
+              style={[styles.actionCard, isRTL && { flexDirection: 'row-reverse' }, { backgroundColor: '#FFFFFF', marginTop: 10, borderColor: '#E5E7EB', borderWidth: 1 }]} 
+              onPress={switchRole}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: '#FFFFFF' }, isRTL && { marginRight: 0, marginLeft: 14 }]}>
+                {user?.role === 'driver' ? <Car color="#000000" size={24} /> : <Settings color="#000000" size={24} />}
+              </View>
+              <Text style={[styles.actionLabel, isRTL && { textAlign: 'right' }, { fontWeight: '800' }]}>
+                {user?.role === 'driver' 
+                  ? (isRTL ? 'التبديل لحساب الراكب' : 'Switch to Passenger Account')
+                  : (isRTL ? 'التبديل لحساب الكابتن' : 'Switch to Captain Account')
+                }
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -150,14 +204,14 @@ export default function ProfileScreen({ navigation }: any) {
         <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>{t('account_info')}</Text>
         <View style={styles.infoCard}>
           <View style={[styles.infoRow, isRTL && { flexDirection: 'row-reverse' }]}>
-            <View style={[styles.iconBox, isRTL && { marginRight: 0, marginLeft: 14 }]}><Mail color={COLORS.onSurfaceVariant} size={20} /></View>
+            <View style={[styles.iconBox, isRTL && { marginRight: 0, marginLeft: 14 }, { backgroundColor: '#F3F4F6' }]}><Mail color="#000000" size={20} /></View>
             <View style={styles.infoContent}>
               <Text style={[styles.infoValue, isRTL && { textAlign: 'right' }]}>{user?.email || '---'}</Text>
               <Text style={[styles.infoLabel, isRTL && { textAlign: 'right' }]}>{t('email_address')}</Text>
             </View>
           </View>
-          <View style={[styles.infoRow, { borderTopWidth: 1, borderColor: COLORS.surfaceContainerLow }, isRTL && { flexDirection: 'row-reverse' }]}>
-            <View style={[styles.iconBox, isRTL && { marginRight: 0, marginLeft: 14 }]}><Phone color={COLORS.onSurfaceVariant} size={20} /></View>
+          <View style={[styles.infoRow, { borderTopWidth: 1, borderColor: '#E5E7EB' }, isRTL && { flexDirection: 'row-reverse' }]}>
+            <View style={[styles.iconBox, isRTL && { marginRight: 0, marginLeft: 14 }, { backgroundColor: '#F3F4F6' }]}><Phone color="#000000" size={20} /></View>
             <View style={styles.infoContent}>
               <Text style={[styles.infoValue, isRTL && { textAlign: 'right' }]}>{user?.phone}</Text>
               <Text style={[styles.infoLabel, isRTL && { textAlign: 'right' }]}>{t('phone_label')}</Text>
@@ -172,7 +226,7 @@ export default function ProfileScreen({ navigation }: any) {
           <Text style={[styles.sectionTitle, isRTL && { textAlign: 'right' }]}>{t('vehicle_details')}</Text>
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
-              <View style={styles.iconBox}><Car color={COLORS.onSurfaceVariant} size={20} /></View>
+              <View style={[styles.iconBox, { backgroundColor: '#F3F4F6' }]}><Car color="#000000" size={20} /></View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoValue}>{user.vehicleDetails.make} {user.vehicleDetails.model} {user.vehicleDetails.year}</Text>
                 <Text style={styles.infoLabel}>{user.vehicleDetails.color} • Plate: {user.vehicleDetails.plateNumber}</Text>
@@ -188,63 +242,92 @@ export default function ProfileScreen({ navigation }: any) {
         <Text style={styles.logoutText}>{t('logout')}</Text>
       </TouchableOpacity>
     </ScrollView>
+    </View>
   );
 }
 
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surface },
+  container: { flex: 1, backgroundColor: '#FAF9F6' },
 
   headerBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: SPACING.xl, paddingTop: 55, paddingBottom: SPACING.md,
   },
   backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: FONT_SIZES.xl, fontWeight: 'bold', color: COLORS.onSurface },
+  headerTitle: { fontSize: 22, fontWeight: '900', color: '#111111', letterSpacing: -0.5 },
 
   header: { alignItems: 'center', marginBottom: 24 },
   avatarContainer: { width: 100, height: 100, position: 'relative' },
-  avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: COLORS.surfaceContainerLowest },
-  editBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: COLORS.primary, width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: COLORS.surfaceContainerLowest },
-  userName: { fontSize: FONT_SIZES['2xl'], fontWeight: 'bold', color: COLORS.onSurface, marginTop: 12 },
-  roleBadge: { backgroundColor: COLORS.surfaceContainerLow, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, marginTop: 6 },
-  roleText: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: COLORS.onSurfaceVariant, letterSpacing: 1 },
+  avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: '#111111' },
+  editBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#FFFFFF', width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#111111' },
+  userName: { fontSize: 24, fontWeight: '900', color: '#111111', marginTop: 12 },
+  roleBadge: { backgroundColor: '#111111', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 24, marginTop: 8 },
+  roleText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF', letterSpacing: 0.5 },
 
   walletSection: { paddingHorizontal: SPACING.xl, marginBottom: SPACING.md },
 
   statsRow: {
-    flexDirection: 'row', backgroundColor: COLORS.surfaceContainerLowest,
-    marginHorizontal: 20, borderRadius: RADIUS.xl, paddingVertical: 18, ...SHADOWS.sm,
+    flexDirection: 'row', backgroundColor: '#FFFFFF',
+    marginHorizontal: 20, borderRadius: 24, paddingVertical: 18, ...SHADOWS.sm,
+    borderWidth: 1, borderColor: '#E5E7EB'
   },
   statItem: { flex: 1, alignItems: 'center' },
-  statDivider: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: COLORS.surfaceContainerLow },
-  statValue: { fontSize: FONT_SIZES.md, fontWeight: 'bold', color: COLORS.onSurface, marginTop: 4 },
-  statLabel: { fontSize: FONT_SIZES.xs, color: COLORS.onSurfaceVariant, marginTop: 2 },
+  statDivider: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#E5E7EB' },
+  statValue: { fontSize: 18, fontWeight: '900', color: '#111111', marginTop: 4 },
+  statLabel: { fontSize: 13, color: '#6B7280', marginTop: 2, fontWeight: '600' },
 
   section: { marginTop: 24, paddingHorizontal: 20 },
-  sectionTitle: { fontSize: FONT_SIZES.lg, fontWeight: 'bold', color: COLORS.onSurface, marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#111111', marginBottom: 12 },
 
   // Action grid
-  actionGrid: { gap: 8 },
+  actionGrid: { gap: 12 },
   actionCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.surfaceContainerLowest, borderRadius: RADIUS.xl,
+    backgroundColor: '#FFFFFF', borderRadius: 24,
     padding: 16, ...SHADOWS.sm,
+    borderWidth: 1, borderColor: '#E5E7EB'
   },
-  actionIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
-  actionLabel: { flex: 1, fontSize: FONT_SIZES.md, fontWeight: '600', color: COLORS.onSurface },
+  actionIcon: { width: 48, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', marginRight: 14, backgroundColor: '#F3F4F6' },
+  actionLabel: { flex: 1, fontSize: 16, fontWeight: '800', color: '#111111' },
 
   // Info card
-  infoCard: { backgroundColor: COLORS.surfaceContainerLowest, borderRadius: RADIUS.xl, padding: 4, ...SHADOWS.sm },
+  infoCard: { 
+    backgroundColor: '#FFFFFF', borderRadius: 24, padding: 4, 
+    borderWidth: 1, borderColor: '#E5E7EB', ...SHADOWS.sm
+  },
   infoRow: { flexDirection: 'row', alignItems: 'center', padding: 16 },
-  iconBox: { width: 40, height: 40, backgroundColor: COLORS.surfaceContainerLow, borderRadius: RADIUS.md, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  iconBox: { width: 44, height: 44, backgroundColor: '#F3F4F6', borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
   infoContent: { flex: 1 },
-  infoValue: { fontSize: FONT_SIZES.md, fontWeight: '600', color: COLORS.onSurface },
-  infoLabel: { fontSize: FONT_SIZES.xs, color: COLORS.onSurfaceVariant, marginTop: 2 },
+  infoValue: { fontSize: 15, fontWeight: '700', color: '#111111' },
+  infoLabel: { fontSize: 13, color: '#6B7280', marginTop: 2, fontWeight: '600' },
 
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    marginTop: 36, marginHorizontal: 20, padding: 16, borderRadius: RADIUS.xl,
-    backgroundColor: COLORS.surfaceContainerLowest, borderWidth: 1, borderColor: '#fecaca',
+    marginTop: 36, marginHorizontal: 20, padding: 16, borderRadius: 24,
+    backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#ef4444', ...SHADOWS.sm
   },
-  logoutText: { color: COLORS.error, fontSize: FONT_SIZES.md, fontWeight: 'bold', marginLeft: 10 },
+  logoutText: { color: '#ef4444', fontSize: 16, fontWeight: '900', marginLeft: 10 },
+  feedbackOverlay: {
+    position: 'absolute',
+    top: 110,
+    left: 20,
+    right: 20,
+    backgroundColor: COLORS.primary,
+    padding: 16,
+    borderRadius: RADIUS.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 1000,
+    ...SHADOWS.md,
+  },
+  feedbackText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: 'bold',
+    marginLeft: 12,
+    flex: 1,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
 });

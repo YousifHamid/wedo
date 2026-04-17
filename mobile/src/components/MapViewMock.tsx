@@ -41,9 +41,30 @@ export const SafeMapView = ({ style, children, ...props }: any) => {
   );
 };
 
-export const SafeMarker = ({ children, coordinate }: any) => (
-  <View style={styles.markerWrap}>{children}</View>
+export const SafeMarker = ({ children, coordinate, style }: any) => (
+  <View style={[styles.markerWrap, style]}>{children}</View>
 );
+
+import Svg, { Path } from 'react-native-svg';
+
+export const SafePolyline = ({ coordinates, strokeColor = '#000', strokeWidth = 4, lineDashPattern }: any) => {
+  // Simple fake route path overlay to simulate real maps
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Svg style={StyleSheet.absoluteFill}>
+        <Path
+          d="M 100,500 L 150,450 L 120,380 L 250,280 L 220,180 L 300,100"
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth={strokeWidth}
+          strokeDasharray={lineDashPattern ? `${lineDashPattern[0]}, ${lineDashPattern[1]}` : undefined}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
+    </View>
+  );
+};
 
 export const isMapAvailable = false;
 export const PROVIDER_GOOGLE = null;
@@ -52,26 +73,26 @@ export const PROVIDER_DEFAULT = null;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#e8f5e9',
+    backgroundColor: '#1A1B1F', // Matte Black background
     overflow: 'hidden',
   },
   grid: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.18,
+    opacity: 0.1,
   },
   lineH: {
     position: 'absolute',
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: '#2AA84A',
+    backgroundColor: '#FFFFFF',
   },
   lineV: {
     position: 'absolute',
     top: 0,
     bottom: 0,
     width: 1,
-    backgroundColor: '#2AA84A',
+    backgroundColor: '#FFFFFF',
   },
   centerPin: {
     position: 'absolute',
@@ -86,25 +107,25 @@ const styles = StyleSheet.create({
   },
   pulseRing: {
     position: 'absolute',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     borderWidth: 2,
-    borderColor: '#2AA84A',
+    borderColor: '#FFFFFF',
     opacity: 0.4,
   },
   pinDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#2AA84A',
-    borderWidth: 3,
-    borderColor: '#fff',
-    elevation: 4,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2.5,
+    borderColor: '#000',
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
   },
   markerWrap: {
     position: 'absolute',

@@ -5,7 +5,7 @@ import { UserRole } from '../models/User';
 
 const router = express.Router();
 
-router.post('/request', protect, authorize(UserRole.RIDER), requestTrip);
+router.post('/request', protect, authorize(UserRole.RIDER, UserRole.DRIVER), requestTrip);
 router.post('/:tripId/accept', protect, authorize(UserRole.DRIVER), acceptTrip);
 router.post('/:tripId/reject', protect, authorize(UserRole.DRIVER), rejectTrip);
 router.put('/:tripId/status', protect, authorize(UserRole.DRIVER, UserRole.ADMIN), updateTripStatus);

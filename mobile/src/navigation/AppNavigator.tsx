@@ -5,7 +5,6 @@ import { connectSocket, disconnectSocket } from '../services/socket';
 
 // Auth Screens
 import WelcomeScreen from '../screens/Auth/WelcomeScreen';
-import FastIntroScreen from '../screens/Auth/FastIntroScreen';
 import LoginScreen from '../screens/Auth/LoginScreen';
 import SignUpScreen from '../screens/Auth/SignUpScreen';
 import ProfileScreen from '../screens/Auth/ProfileScreen';
@@ -16,6 +15,8 @@ import ZoneSelectScreen from '../screens/User/ZoneSelectScreen';
 import SearchingScreen from '../screens/User/SearchingScreen';
 import TripStatusScreen from '../screens/User/TripStatusScreen';
 import TripCompleteScreen from '../screens/User/TripCompleteScreen';
+import TripDetailsScreen from '../screens/User/TripDetailsScreen';
+import TripHistoryScreen from '../screens/User/TripHistoryScreen';
 
 // Driver Screens
 import DriverHomeScreen from '../screens/Driver/DriverHomeScreen';
@@ -40,7 +41,6 @@ export default function AppNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!token || !user ? (
         <>
-          <Stack.Screen name="Intro" component={FastIntroScreen} />
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="SignUp" component={SignUpScreen} />
@@ -62,6 +62,8 @@ export default function AppNavigator() {
             </>
           )}
           <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen name="TripHistory" component={TripHistoryScreen} />
+          <Stack.Screen name="TripDetails" component={TripDetailsScreen} />
         </>
       )}
     </Stack.Navigator>

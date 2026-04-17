@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { Car, MapPin, Clock, DollarSign } from 'lucide-react';
 
 const mockTrips = [
-  { id: 'T-001', rider: 'Omar Youssef', driver: 'Ahmed K.', from: 'Khartoum North', to: 'Omdurman', fare: 4500, status: 'completed', time: '14 min ago' },
-  { id: 'T-002', rider: 'Fatima Ali', driver: 'Sara M.', from: 'Airport', to: 'Khartoum Center', fare: 4500, status: 'active', time: '5 min ago' },
-  { id: 'T-003', rider: 'Hassan M.', driver: 'Khaled S.', from: 'Bahri', to: 'Omdurman', fare: 5000, status: 'completed', time: '1 hour ago' },
-  { id: 'T-004', rider: 'Amira S.', driver: null, from: 'Jabra', to: 'Airport', fare: 3500, status: 'cancelled', time: '2 hours ago' },
-  { id: 'T-005', rider: 'Youssef H.', driver: 'Ali H.', from: 'Arkaweet', to: 'Khartoum South', fare: 3000, status: 'completed', time: '3 hours ago' },
+  { id: 'T-001', rider: 'Omar Youssef', driver: 'Ahmed K.', from: 'Khartoum North', to: 'Omdurman', fare: 4500, type: 'Standard', status: 'completed', time: '14 min ago' },
+  { id: 'T-002', rider: 'Fatima Ali', driver: 'Sara M.', from: 'Airport', to: 'Khartoum Center', fare: 6500, type: 'Premium', status: 'active', time: '5 min ago' },
+  { id: 'T-003', rider: 'Hassan M.', driver: 'Khaled S.', from: 'Bahri', to: 'Omdurman', fare: 5000, type: 'Standard', status: 'completed', time: '1 hour ago' },
+  { id: 'T-004', rider: 'Amira S.', driver: null, from: 'Jabra', to: 'Airport', fare: 3500, type: 'Standard', status: 'cancelled', time: '2 hours ago' },
+  { id: 'T-005', rider: 'Youssef H.', driver: 'Ali H.', from: 'Arkaweet', to: 'Khartoum South', fare: 4200, type: 'Premium', status: 'completed', time: '3 hours ago' },
 ];
 
 export default function TripsPage() {
@@ -55,6 +55,7 @@ export default function TripsPage() {
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Rider</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Driver</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Route</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fare</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Time</th>
@@ -67,6 +68,7 @@ export default function TripsPage() {
                 <td className="px-6 py-4 text-sm font-medium text-gray-800">{trip.rider}</td>
                 <td className="px-6 py-4 text-sm text-gray-600">{trip.driver || '—'}</td>
                 <td className="px-6 py-4 text-sm text-gray-600">{trip.from} → {trip.to}</td>
+                <td className="px-6 py-4 text-sm font-semibold text-emerald-700">{trip.type}</td>
                 <td className="px-6 py-4 text-sm font-bold text-gray-800">{trip.fare.toLocaleString()} SDG</td>
                 <td className="px-6 py-4"><span className={`text-xs font-bold px-3 py-1 rounded-full ${statusColors[trip.status]}`}>{trip.status}</span></td>
                 <td className="px-6 py-4 text-sm text-gray-500">{trip.time}</td>

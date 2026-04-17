@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, SafeAreaView, ActivityIndicator } from 'react-native';
-import { Wallet, ArrowUpCircle, ArrowDownCircle, ChevronLeft, Clock, Plus } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, SafeAreaView, ActivityIndicator, Modal } from 'react-native';
+import { Wallet, ArrowUpCircle, ArrowDownCircle, ChevronLeft, Clock, Plus, AlertCircle, CheckCircle } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import useAuthStore from '../../store/useAuthStore';
 import api from '../../services/api';
@@ -18,6 +18,11 @@ export default function DriverWalletScreen({ navigation }: any) {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{ visible: boolean; title: string; message: string; type: 'error' | 'success' }>({ visible: false, title: '', message: '', type: 'error' });
+
+  const showCustomAlert = (title: string, message: string, type: 'error' | 'success' = 'error') => {
+    setAlertConfig({ visible: true, title, message, type });
+  };
 
   // Fetch balance and transactions from API
   useEffect(() => {
@@ -41,27 +46,28 @@ export default function DriverWalletScreen({ navigation }: any) {
 
   const handleSubmitTopUp = async () => {
     if (!topUpAmount || !reference) {
-      Alert.alert(t('error'), isRTL ? 'يرجى ملء جميع الحقول' : 'Please fill all fields');
+      showCustomAlert(t('error'), isRTL ? 'يرجى ملء جميع الحقول' : 'Please fill all fields', 'error');
       return;
     }
     const amount = parseInt(topUpAmount);
     if (isNaN(amount) || amount <= 0) {
-      Alert.alert(t('error'), isRTL ? 'المبلغ غير صحيح' : 'Invalid amount');
+      showCustomAlert(t('error'), isRTL ? 'المبلغ غير صحيح' : 'Invalid amount', 'error');
       return;
     }
 
     setSubmitting(true);
     try {
       await api.post('/wallet/topup', { amount, reference });
-      Alert.alert(
+      showCustomAlert(
         t('success'),
-        isRTL ? 'تم إرسال طلب الشحن. في انتظار موافقة الإدارة.' : 'Top-up request submitted. Awaiting admin approval.'
+        isRTL ? 'تم إرسال طلب الشحن. في انتظار موافقة الإدارة.' : 'Top-up request submitted. Awaiting admin approval.',
+        'success'
       );
       setShowTopUp(false);
       setTopUpAmount('');
       setReference('');
     } catch (error: any) {
-      Alert.alert(t('error'), error.response?.data?.message || 'Failed to submit top-up request');
+      showCustomAlert(t('error'), error.response?.data?.message || 'Failed to submit top-up request', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -193,6 +199,31 @@ export default function DriverWalletScreen({ navigation }: any) {
           ))
         )}
       </ScrollView>
+
+      {/* Custom Alert Modal */}
+      <Modal visible={alertConfig.visible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.alertBox}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              {alertConfig.type === 'error' ? (
+                <AlertCircle color={COLORS.error} size={48} strokeWidth={1.5} />
+              ) : (
+                <CheckCircle color={COLORS.success} size={48} strokeWidth={1.5} />
+              )}
+            </View>
+            <Text style={styles.alertTitle}>{alertConfig.title}</Text>
+            <Text style={styles.alertMessage}>{alertConfig.message}</Text>
+            <TouchableOpacity 
+              style={styles.alertBtn} 
+              onPress={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.alertBtnText}>{isRTL ? 'حسنًا' : 'OK'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
@@ -207,23 +238,23 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: SPACING.xl, paddingBottom: 40 },
 
   // Balance
-  balanceCard: { backgroundColor: COLORS.surfaceContainerLowest, borderRadius: RADIUS.xl, padding: SPACING['2xl'], marginBottom: SPACING.xl, ...SHADOWS.md },
-  balanceLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: COLORS.onSurfaceVariant, letterSpacing: 1.5, marginBottom: SPACING.sm },
-  balanceAmount: { fontSize: FONT_SIZES.display, fontWeight: 'bold', color: COLORS.onSurface, marginBottom: SPACING.lg },
+  balanceCard: { backgroundColor: '#FFFFFF', borderRadius: RADIUS.xl, padding: SPACING['2xl'], marginBottom: SPACING.xl, ...SHADOWS.md },
+  balanceLabel: { fontSize: FONT_SIZES.xs, fontWeight: '700', color: '#666666', letterSpacing: 1.5, marginBottom: SPACING.sm },
+  balanceAmount: { fontSize: FONT_SIZES.display, fontWeight: '900', color: '#000000', marginBottom: SPACING.lg },
   balanceStatus: { marginBottom: SPACING.xl },
-  balanceSufficient: { fontSize: FONT_SIZES.sm, color: COLORS.primary, fontWeight: '600', backgroundColor: COLORS.primaryFixed, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, borderRadius: RADIUS.lg, overflow: 'hidden' },
-  balanceLow: { fontSize: FONT_SIZES.sm, color: COLORS.warning, fontWeight: '600', backgroundColor: '#fff8e1', paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, borderRadius: RADIUS.lg, overflow: 'hidden' },
-  balanceZero: { fontSize: FONT_SIZES.sm, color: COLORS.error, fontWeight: '600', backgroundColor: '#fef2f2', paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, borderRadius: RADIUS.lg, overflow: 'hidden' },
-  topUpMainBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.primary, paddingVertical: SPACING.lg, borderRadius: RADIUS.xl },
+  balanceSufficient: { fontSize: FONT_SIZES.sm, color: '#000000', fontWeight: '800', backgroundColor: '#F9F9F9', paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, borderRadius: RADIUS.lg, overflow: 'hidden', borderWidth: 1, borderColor: '#000' },
+  balanceLow: { fontSize: FONT_SIZES.sm, color: '#FFFFFF', fontWeight: '800', backgroundColor: '#000000', paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, borderRadius: RADIUS.lg, overflow: 'hidden' },
+  balanceZero: { fontSize: FONT_SIZES.sm, color: '#FFFFFF', fontWeight: '800', backgroundColor: '#000000', paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, borderRadius: RADIUS.lg, overflow: 'hidden' },
+  topUpMainBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000000', paddingVertical: SPACING.lg, borderRadius: RADIUS.xl },
   topUpMainText: { color: COLORS.onPrimary, fontWeight: '700', fontSize: FONT_SIZES.md, marginLeft: 8 },
 
   // Top-up Form
   topUpForm: { backgroundColor: COLORS.surfaceContainerLowest, borderRadius: RADIUS.xl, padding: SPACING['2xl'], marginBottom: SPACING.xl, ...SHADOWS.sm },
-  topUpFormTitle: { fontSize: FONT_SIZES.lg, fontWeight: 'bold', color: COLORS.onSurface, marginBottom: SPACING.xl },
-  inputLabel: { fontSize: FONT_SIZES.sm, fontWeight: '600', color: COLORS.onSurfaceVariant, marginBottom: SPACING.sm },
-  input: { backgroundColor: COLORS.surfaceContainerLow, borderRadius: RADIUS.md, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.lg, fontSize: FONT_SIZES.md, color: COLORS.onSurface, marginBottom: SPACING.lg },
-  submitBtn: { backgroundColor: COLORS.primary, paddingVertical: SPACING.lg, borderRadius: RADIUS.xl, alignItems: 'center', marginBottom: SPACING.md },
-  submitBtnText: { color: COLORS.onPrimary, fontWeight: 'bold', fontSize: FONT_SIZES.md },
+  topUpFormTitle: { fontSize: FONT_SIZES.lg, fontWeight: 'bold', color: '#000000', marginBottom: SPACING.xl },
+  inputLabel: { fontSize: FONT_SIZES.sm, fontWeight: '700', color: '#000000', marginBottom: SPACING.sm },
+  input: { backgroundColor: '#F9F9F9', borderRadius: RADIUS.md, paddingHorizontal: SPACING.lg, paddingVertical: SPACING.lg, fontSize: FONT_SIZES.md, color: '#000000', marginBottom: SPACING.lg, borderWidth: 1, borderColor: '#000000' },
+  submitBtn: { backgroundColor: '#000000', paddingVertical: SPACING.lg, borderRadius: RADIUS.xl, alignItems: 'center', marginBottom: SPACING.md },
+  submitBtnText: { color: '#FFFFFF', fontWeight: '900', fontSize: FONT_SIZES.md },
   topUpNote: { fontSize: FONT_SIZES.xs, color: COLORS.onSurfaceVariant, textAlign: 'center' },
 
   // Empty state
@@ -246,4 +277,12 @@ const styles = StyleSheet.create({
   soonGrid: { flexDirection: 'row', justifyContent: 'center', gap: SPACING.md },
   soonItem: { backgroundColor: COLORS.surfaceContainerLow, paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, borderRadius: RADIUS.full },
   soonText: { fontSize: 10, color: COLORS.onSurfaceVariant, fontWeight: 'bold' },
+
+  // Custom Alert Modal
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: SPACING.xl },
+  alertBox: { width: '100%', backgroundColor: '#FFFFFF', borderRadius: RADIUS.xl, padding: SPACING['2xl'], alignItems: 'center', ...SHADOWS.lg },
+  alertTitle: { fontSize: FONT_SIZES.xl, fontWeight: '900', color: '#111111', marginBottom: SPACING.md, textAlign: 'center' },
+  alertMessage: { fontSize: FONT_SIZES.md, color: '#4B5563', textAlign: 'center', marginBottom: SPACING['2xl'], lineHeight: 22 },
+  alertBtn: { width: '100%', backgroundColor: '#000000', paddingVertical: SPACING.lg, borderRadius: RADIUS.xl, alignItems: 'center' },
+  alertBtnText: { color: '#FFFFFF', fontWeight: '900', fontSize: FONT_SIZES.md },
 });

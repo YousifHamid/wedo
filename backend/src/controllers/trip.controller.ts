@@ -6,6 +6,7 @@ import Pricing from '../models/Pricing';
 import mongoose from 'mongoose';
 import { startDispatch, recordDispatchAttempt, getFareEstimate } from '../services/matching.service';
 import { deductCommission } from './wallet.controller';
+import { assignProxyNumbers, releaseProxyNumbers } from '../services/proxyPhone.service';
 
 // POST /api/trip/request - Rider requests a trip (zone-based)
 export const requestTrip = async (req: Request, res: Response) => {
@@ -13,12 +14,22 @@ export const requestTrip = async (req: Request, res: Response) => {
     const { pickupZoneId, dropoffZoneId, vehicleType } = req.body;
     const riderId = (req as any).user._id;
 
-    if (!pickupZoneId || !dropoffZoneId) {
-      return res.status(400).json({ message: 'Pickup and drop-off zones are required' });
+    // Gracefully handle custom string IDs from Nominatim/map interactions
+    let pZoneId = pickupZoneId;
+    let dZoneId = dropoffZoneId;
+    if (!mongoose.Types.ObjectId.isValid(pZoneId) || !mongoose.Types.ObjectId.isValid(dZoneId)) {
+       const Zone = mongoose.model('Zone');
+       const defaultZone = await Zone.findOne();
+       if (defaultZone) {
+          pZoneId = mongoose.Types.ObjectId.isValid(pZoneId) ? pZoneId : defaultZone._id.toString();
+          dZoneId = mongoose.Types.ObjectId.isValid(dZoneId) ? dZoneId : defaultZone._id.toString();
+       } else {
+          return res.status(400).json({ message: 'System error: No zones configured.' });
+       }
     }
 
     // Get fare estimate
-    const fareData = await getFareEstimate(pickupZoneId, dropoffZoneId, vehicleType || 'standard');
+    const fareData = await getFareEstimate(pZoneId, dZoneId, vehicleType || 'standard');
     if (!fareData) {
       return res.status(404).json({ message: 'No pricing found for this route' });
     }
@@ -26,8 +37,8 @@ export const requestTrip = async (req: Request, res: Response) => {
     // Create trip
     const newTrip = await Trip.create({
       rider: riderId,
-      pickupZone: pickupZoneId,
-      dropoffZone: dropoffZoneId,
+      pickupZone: pZoneId,
+      dropoffZone: dZoneId,
       vehicleType: vehicleType || 'standard',
       fareEstimate: fareData.fare,
       commissionRate: fareData.commissionRate,
@@ -81,6 +92,11 @@ export const acceptTrip = async (req: Request, res: Response) => {
     const populatedTrip = await Trip.findById(tripId)
       .populate('rider', 'name phone')
       .populate('pickupZone dropoffZone');
+
+    // 🔒 Assign masked proxy numbers (rider & driver never see each other's real number)
+    try {
+      await assignProxyNumbers(tripId);
+    } catch (_) { /* non-fatal */ }
 
     res.json({ message: 'Trip accepted', trip: populatedTrip });
   } catch (error) {
@@ -138,22 +154,19 @@ export const updateTripStatus = async (req: Request, res: Response) => {
 
     trip.status = status;
 
-    // If completing trip, deduct commission from driver wallet
-    if (status === TripStatus.COMPLETED && trip.driver) {
-      const finalFare = trip.fareEstimate; // In zone-based, fare is fixed
+    // If completing trip, deduct commission from driver wallet and process loyalty logic
+    if (status === TripStatus.COMPLETED && trip.driver && trip.rider) {
+      const finalFare = trip.fareEstimate;
       trip.finalFare = finalFare;
-
       const commResult = await deductCommission(
-        trip.driver.toString(),
-        tripId,
-        finalFare,
-        trip.commissionRate || 15
+        trip.driver.toString(), trip.rider.toString(), tripId, finalFare, 9
       );
-
       trip.commission = commResult.commission;
-
-      // Mark driver as available again
+      trip.paymentMethod = commResult.isFreeForRider ? ('system_subsidized' as any) : 'cash';
+      
       await User.findByIdAndUpdate(trip.driver, { isBusy: false });
+      // Release proxy numbers after trip ends
+      try { await releaseProxyNumbers(tripId); } catch (_) {}
     }
 
     if (status === TripStatus.CANCELLED && trip.driver) {

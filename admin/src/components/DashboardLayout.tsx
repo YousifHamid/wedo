@@ -35,6 +35,7 @@ const DashboardLayout = () => {
     { path: '/complaints', label: t('complaints'), icon: ShieldAlert, perm: 'access_complaints' },
     { path: '/transactions', label: t('financials'), icon: DollarSign, access: true },
     { path: '/direct-topup', label: t('direct_topup'), icon: Wallet, perm: 'access_wallet' },
+    { path: '/notifications', label: t('notifications', { defaultValue: isRTL ? 'تنبيهات الدفع' : 'Push Notifications' }), icon: Bell, perm: 'access_notifications' },
     { path: '/staff', label: t('staff_management'), icon: Settings, role: 'super_admin' },
   ];
 

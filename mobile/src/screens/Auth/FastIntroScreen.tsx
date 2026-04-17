@@ -43,7 +43,10 @@ export default function FastIntroScreen({ navigation }: any) {
           }
         ]}
       >
-        <MapPin size={60} color="#000000" strokeWidth={2.5} />
+        <Animated.Image 
+           source={require('../../../assets/logo.png')} 
+           style={{ width: 150, height: 150, resizeMode: 'contain', borderRadius: 0 }} 
+        />
         <Text style={styles.brandText}>Wedo</Text>
         <View style={styles.line} />
         <Text style={styles.tagline}>ويدو خيارك الأول وين ما تمشي</Text>
@@ -91,8 +94,8 @@ const styles = StyleSheet.create({
   },
   madeWithTrust: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.primary,
-    fontWeight: '700',
+    color: '#000000',
+    fontWeight: '900',
     marginBottom: 6,
     letterSpacing: 0.5
   },

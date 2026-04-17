@@ -1,37 +1,40 @@
 // Design system based on the DESIGN.md spec 
 // "Editorial Utility" — High-Contrast Mobility for Sudan
 export const COLORS = {
-  // Primary brand
-  primary: '#00603e',
-  primaryContainer: '#007b52',
-  primaryFixed: '#8df7c1',
+  // --- New Wedo Logo Base Colors ---
+  // The vibrant, friendly sky/ocean blue matching the 'wedo' text and map pin
+  primary: '#0084FF',       
+  primaryContainer: '#005CBE', // Deeper shade from the pin shadow
+  primaryFixed: '#E0F2FE',     // Light icy blue for card backgrounds
+
+  // Accent (Sky Blue highlights from the top of the pin)
+  accent: '#38BDF8',       
+  accentLight: '#F0F9FF',
   
-  // Surface tiers (No-Line Rule: use bg shifts instead of borders)
-  surface: '#f8f9fa',
-  surfaceContainerLow: '#f3f4f5',
-  surfaceContainerHigh: '#e7e8e9',
-  surfaceContainerHighest: '#e1e3e4',
-  surfaceContainerLowest: '#ffffff',
+  // Surfaces (Clean, bright friendly aesthetic)
+  surface: '#FFFFFF',
+  surfaceContainerLow: '#F8FAFC',
+  surfaceContainerHigh: '#F1F5F9',
+  surfaceContainerHighest: '#E2E8F0',
+  surfaceContainerLowest: '#FFFFFF',
   
-  // Text
-  onSurface: '#1a1c1e',
-  onSurfaceVariant: '#44474f',
-  onPrimary: '#ffffff',
-  onPrimaryContainer: '#f0faf5',
+  // Text (Friendly soft slate, avoiding harsh blacks)
+  onSurface: '#1E293B',        
+  onSurfaceVariant: '#64748B', 
+  onPrimary: '#FFFFFF',
+  onPrimaryContainer: '#FFFFFF',
+  onAccent: '#FFFFFF',
   
-  // Semantic
-  success: '#22c55e',
-  error: '#ef4444',
-  warning: '#f59e0b',
-  info: '#3b82f6',
-  tertiary: '#883c31', // Cash payment badge
+  // Semantic 
+  success: '#10B981', 
+  error: '#EF4444',
+  warning: '#F59E0B',
+  info: '#2094F3',
+  tertiary: '#94A3B8',         
   
-  // Outline
-  outlineVariant: '#bdc9c2',
-  
-  // Dark elements
-  dark: '#0a0a0a',
-  darkCard: '#1a1a1a',
+  // Dark Elements (for contrast if needed, soft navy)
+  dark: '#0F172A',             
+  darkCard: '#1E293B',         
 };
 
 export const SPACING = {

@@ -20,7 +20,7 @@ const WalletBalanceCard = ({ balance, onTopUp }: Props) => {
           <Text style={styles.amount}>{t('sdg')} {balance.toLocaleString()}</Text>
         </View>
         <View style={styles.icon}>
-          <Wallet color={COLORS.onPrimary} size={20} />
+          <Wallet color="#FFFFFF" size={24} />
         </View>
       </View>
       <TouchableOpacity style={styles.button} onPress={onTopUp}>
@@ -32,17 +32,17 @@ const WalletBalanceCard = ({ balance, onTopUp }: Props) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.dark,
+    backgroundColor: '#FFFFFF',
     padding: SPACING.xl,
     borderRadius: RADIUS.xl,
     marginBottom: SPACING.xl,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.lg },
-  label: { color: '#aaa', fontSize: FONT_SIZES.xs, letterSpacing: 1, marginBottom: 4 },
-  amount: { color: '#fff', fontSize: FONT_SIZES['3xl'], fontWeight: 'bold' },
-  icon: { width: 40, height: 40, borderRadius: RADIUS.md, backgroundColor: COLORS.primaryContainer, justifyContent: 'center', alignItems: 'center' },
-  button: { backgroundColor: '#333', paddingVertical: SPACING.sm, paddingHorizontal: SPACING.lg, borderRadius: RADIUS.sm, alignSelf: 'flex-start' },
-  buttonText: { color: '#fff', fontWeight: '600', fontSize: FONT_SIZES.sm },
+  label: { color: '#666666', fontSize: FONT_SIZES.xs, letterSpacing: 1, marginBottom: 4, fontWeight: '700' },
+  amount: { color: '#000000', fontSize: FONT_SIZES['3xl'], fontWeight: '900' },
+  icon: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center' },
+  button: { backgroundColor: '#000000', paddingVertical: 14, paddingHorizontal: SPACING.lg, borderRadius: RADIUS.lg, alignSelf: 'stretch', alignItems: 'center' },
+  buttonText: { color: '#FFFFFF', fontWeight: '900', fontSize: FONT_SIZES.md },
 });
 
 export default WalletBalanceCard;
