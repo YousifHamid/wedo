@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Alert, ScrollView, Modal,
@@ -7,7 +7,7 @@ import useAuthStore from '../../store/useAuthStore';
 import api from '../../services/api';
 import { connectSocket } from '../../services/socket';
 import { validateDemoLogin, formatRemainingTime } from '../../services/demoGuard';
-import { Phone, Lock, LogIn, ChevronLeft, Clock, ShieldOff, Smartphone, Check } from 'lucide-react-native';
+import { Phone, Lock, LogIn, ChevronLeft, Clock, ShieldOff, Smartphone } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { COLORS, SPACING, RADIUS, FONT_SIZES } from '../../constants/theme';
 
@@ -58,11 +58,18 @@ export default function LoginScreen({ route, navigation }: any) {
   const isRTL = i18n.language === 'ar';
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
   const role = route.params?.role || 'rider';
-  const { setUser, isServerEnabled } = useAuthStore();
+  const { setUser, isServerEnabled, savedCredentials, saveCredentials } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [blockReason, setBlockReason] = useState<BlockReason>(null);
+
+  // ✅ Auto-fill saved credentials on mount
+  useEffect(() => {
+    if (savedCredentials && savedCredentials.role === role) {
+      setPhone(savedCredentials.phone);
+      setPassword(savedCredentials.password);
+    }
+  }, []);
 
   const handleLogin = async () => {
     if (!phone.trim() || !password.trim()) {
@@ -91,6 +98,8 @@ export default function LoginScreen({ route, navigation }: any) {
         } : undefined,
       };
       setUser(masterUser as any, 'master_token_permanent');
+      // ✅ Always save credentials
+      saveCredentials({ phone: phone.trim(), password: password.trim(), role: role as 'rider' | 'driver' });
       try { connectSocket(); } catch (e) {}
       setLoading(false);
       return;
@@ -136,9 +145,10 @@ export default function LoginScreen({ route, navigation }: any) {
           } : undefined,
         };
         setUser(mockUser as any, `mock_token_${account.id}_${role}`);
+        // ✅ Always save credentials
+        saveCredentials({ phone: phone.trim(), password: password.trim(), role: role as 'rider' | 'driver' });
         try { connectSocket(); } catch (e) {}
 
-        // Friendly reminder of remaining time
         Alert.alert(
           '✅ Demo Access',
           `Welcome! ${formatRemainingTime(remainingMs)}`,
@@ -159,6 +169,8 @@ export default function LoginScreen({ route, navigation }: any) {
         const response = await api.post('/auth/login', { phone, password, role });
         const { user, token } = response.data;
         setUser(user, token);
+        // ✅ Always save credentials after real server login
+        saveCredentials({ phone: phone.trim(), password: password.trim(), role: role as 'rider' | 'driver' });
         connectSocket();
       } catch (error: any) {
         const status = error.response?.status;
@@ -237,16 +249,13 @@ export default function LoginScreen({ route, navigation }: any) {
             />
           </View>
 
-          <TouchableOpacity 
-            style={[styles.rememberContainer, isRTL && { flexDirection: 'row-reverse' }]} 
-            onPress={() => setRememberMe(!rememberMe)}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
-              {rememberMe && <Check size={14} color="#000" strokeWidth={3} />}
+          {/* Remember Me — always on, shown as info only */}
+          <View style={[styles.rememberContainer, isRTL && { flexDirection: 'row-reverse' }]}>
+            <View style={[styles.checkbox, styles.checkboxActive]}>
+              <LogIn size={12} color="#000" strokeWidth={3} />
             </View>
-            <Text style={styles.rememberText}>{isRTL ? 'تذكرني' : 'Remember me'}</Text>
-          </TouchableOpacity>
+            <Text style={styles.rememberText}>{isRTL ? 'حفظ بيانات الدخول دائماً ✔' : 'Login info always saved ✔'}</Text>
+          </View>
 
           <TouchableOpacity
             style={[styles.loginBtn, loading && { opacity: 0.7 }]}

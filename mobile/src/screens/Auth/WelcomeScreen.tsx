@@ -45,10 +45,7 @@ export default function WelcomeScreen({ navigation }: any) {
 
       {/* Header Layer */}
       <View style={[styles.topNav, { top: Math.max(insets.top, 20) + 32, flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
-         <Image
-           source={require('../../../assets/logo.png')}
-           style={{ width: 80, height: 36, resizeMode: 'contain' }}
-         />
+         <Text style={styles.brandLogoHeader}>Wedo</Text>
          <TouchableOpacity onPress={toggleLanguage} style={styles.langBtn} activeOpacity={0.8}>
             <Text style={styles.langBtnText}>{i18n.language === 'ar' ? 'EN' : 'عربي'}</Text>
          </TouchableOpacity>
@@ -119,9 +116,9 @@ const styles = StyleSheet.create({
   },
   brandLogoHeader: {
     color: '#FFFFFF',
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: '900',
-    letterSpacing: 2,
+    letterSpacing: -1,
   },
   langBtn: { 
     backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 18, paddingVertical: 10, 

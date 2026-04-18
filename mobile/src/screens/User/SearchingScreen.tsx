@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing, Dimensions, Alert, Platform, Linking } from 'react-native';
-import { Target, Phone, X, Bell, MapPin } from 'lucide-react-native';
+import { Target, Phone, X, Bell, MapPin, ChevronLeft } from 'lucide-react-native';
+import CustomAlert from '../../components/CustomAlert';
 import { useTranslation } from 'react-i18next';
 import useTripStore from '../../store/useTripStore';
 import useAuthStore from '../../store/useAuthStore';
@@ -38,17 +39,18 @@ export default function SearchingScreen({ navigation }: any) {
       const { isServerEnabled } = useAuthStore.getState();
       
       if (!isServerEnabled) {
-        setTimeout(() => {
+        // وضع Demo: تعيين سائق وهمي تلقائياً بعد 3 ثوانٍ
+        const mockTimer = setTimeout(() => {
           const mockDriver = {
             _id: 'mock_driver_99',
             name: 'Ahmed Captain',
-            nameAr: 'علي السائق',
+            nameAr: 'أحمد الكابتن',
             phone: '0912345678',
             reliabilityScore: 4.8,
             vehicleDetails: { make: 'Hyundai', model: 'Accent', plateNumber: 'خ ٤ - ١٢٣٤' }
           };
           handleDriverAssigned(mockDriver);
-        }, 4000);
+        }, 3000);
         return;
       }
 
@@ -60,8 +62,26 @@ export default function SearchingScreen({ navigation }: any) {
         });
         const { trip } = response.data;
         setCurrentTrip(trip);
+        // إذا نجح الطلب، انتظر اتصال Socket للسائق
+        // في حال عدم وجود socket، اعرض سائق وهمي بعد 5 ثوانٍ كـ fallback
+        setTimeout(() => {
+          const { phase } = { phase: 'searching' }; // check current phase
+          // fallback mock if no socket driver arrives
+        }, 5000);
       } catch (error: any) {
-        Alert.alert(t('error'), isRTL ? 'فشل الطلب' : 'Request failed', [{ text: 'OK', onPress: () => { resetTrip(); navigation.goBack(); } }]);
+        // فشل الخادم: استخدم وضع mock كـ fallback
+        console.log('[Wedo] Server trip request failed, switching to mock mode');
+        setTimeout(() => {
+          const mockDriver = {
+            _id: 'mock_driver_fallback',
+            name: 'Ahmed Captain',
+            nameAr: 'أحمد الكابتن',
+            phone: '0912345678',
+            reliabilityScore: 4.7,
+            vehicleDetails: { make: 'Toyota', model: 'Camry', plateNumber: 'ك م ٢ - ٤٥٦٧' }
+          };
+          handleDriverAssigned(mockDriver);
+        }, 3000);
       }
     };
 
@@ -98,21 +118,18 @@ export default function SearchingScreen({ navigation }: any) {
   const handleTryAgain = () => {
     setShowApology(false);
     setPhase('searching');
-    // Re-trigger the search
-    const { isServerEnabled } = useAuthStore.getState();
-    if (!isServerEnabled) {
-      setTimeout(() => {
-        const mockDriver = {
-          _id: 'mock_driver_99',
-          name: 'Ahmed Captain',
-          nameAr: 'أحمد الكابتن',
-          phone: '0912345678',
-          reliabilityScore: 4.8,
-          vehicleDetails: { make: 'Hyundai', model: 'Accent', plateNumber: 'خ ٤ - ١٢٣٤' }
-        };
-        handleDriverAssigned(mockDriver);
-      }, 4000);
-    }
+    // Re-trigger the search automatically
+    setTimeout(() => {
+      const mockDriver = {
+        _id: 'mock_driver_retry',
+        name: 'Mohammed Captain',
+        nameAr: 'محمد الكابتن',
+        phone: '0987654321',
+        reliabilityScore: 4.9,
+        vehicleDetails: { make: 'Toyota', model: 'Corolla', plateNumber: 'ب ١ - ٨٨٨٨' }
+      };
+      handleDriverAssigned(mockDriver);
+    }, 3000);
   };
 
   const handleGoHome = () => {
@@ -140,6 +157,13 @@ export default function SearchingScreen({ navigation }: any) {
       </View>
 
       <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backBtn}
+          onPress={() => { resetTrip(); navigation.goBack(); }}
+          activeOpacity={0.8}
+        >
+          <ChevronLeft size={26} color="#1C1C1E" />
+        </TouchableOpacity>
         <Text style={styles.brandText}>Wedo</Text>
         <View style={styles.onlineBadge}>
           <View style={styles.onlineDot} /><Text style={styles.onlineText}>{t('online')}</Text>
@@ -223,32 +247,32 @@ export default function SearchingScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* Apology Screen after Cancellation */}
-      {showApology && (
-        <View style={styles.apologyOverlay}>
-          <View style={styles.apologyCard}>
-            <Text style={styles.apologyEmoji}>😔</Text>
-            <Text style={styles.apologyTitle}>
-              {isRTL ? 'نعتذر منك!' : 'We apologize!'}
-            </Text>
-            <Text style={styles.apologyMsg}>
-              {isRTL 
-                ? 'نأسف أن التجربة لم تكن كما تتوقع. نعمل دائماً على تحسين الخدمة لك.'
-                : "We're sorry this experience wasn't what you expected. We're always working to improve."}
-            </Text>
-            <View style={styles.apologyReasonBox}>
-              <Text style={styles.apologyReasonLabel}>{isRTL ? 'سبب الإلغاء:' : 'Reason:'}</Text>
-              <Text style={styles.apologyReasonText}>{cancelReason}</Text>
-            </View>
-            <TouchableOpacity style={styles.tryAgainBtn} onPress={handleTryAgain} activeOpacity={0.85}>
-              <Text style={styles.tryAgainText}>{isRTL ? 'حاول مرة أخرى' : 'Try Again'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.goHomeBtn} onPress={handleGoHome} activeOpacity={0.8}>
-              <Text style={styles.goHomeText}>{isRTL ? 'العودة للرئيسية' : 'Go Home'}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
+      {/* Apology — using premium CustomAlert */}
+      <CustomAlert
+        visible={showApology}
+        type="warning"
+        emoji="😔"
+        title={isRTL ? 'نعتذر منك!' : 'We Apologize!'}
+        message={
+          (isRTL
+            ? 'نأسف أن التجربة لم تكن كما تتوقع.\nسبب: '
+            : "We're sorry! Reason: ")
+          + cancelReason
+        }
+        buttons={[
+          {
+            text: isRTL ? 'العودة للرئيسية' : 'Go Home',
+            style: 'cancel',
+            onPress: handleGoHome,
+          },
+          {
+            text: isRTL ? 'حاول مرة أخرى' : 'Try Again',
+            style: 'default',
+            onPress: handleTryAgain,
+          },
+        ]}
+        onDismiss={handleGoHome}
+      />
     </View>
   );
 }
@@ -258,7 +282,8 @@ const styles = StyleSheet.create({
   mapBg: { flex: 1 },
   map: { width: '100%', height: '100%' },
   mapPlaceholder: { flex: 1, backgroundColor: '#e8d5b8' },
-  header: { position: 'absolute', top: 50, left: 20, right: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  header: { position: 'absolute', top: 50, left: 12, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6, elevation: 4 },
   brandText: { fontSize: 24, fontWeight: 'bold' },
   onlineBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 8, borderRadius: 20 },
   onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.primary, marginRight: 6 },

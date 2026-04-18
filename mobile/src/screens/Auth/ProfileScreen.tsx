@@ -5,6 +5,7 @@ import useAuthStore from '../../store/useAuthStore';
 import api from '../../services/api';
 import { useTranslation } from 'react-i18next';
 import WalletBalanceCard from '../../components/WalletBalanceCard';
+import CustomAlert from '../../components/CustomAlert';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
 import { Phone, Mail, Car, Settings, LogOut, ChevronLeft, ChevronRight, Star, Wallet, Clock, MessageSquare } from 'lucide-react-native';
 
@@ -15,6 +16,7 @@ export default function ProfileScreen({ navigation }: any) {
   const isDriver = user?.role === 'driver';
   const [loading, setLoading] = useState(false);
   const [localAvatar, setLocalAvatar] = useState<string | null>(null);
+  const [showLogoutAlert, setShowLogoutAlert] = useState(false);
 
   // Animation for feedback message
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -43,16 +45,7 @@ export default function ProfileScreen({ navigation }: any) {
   }, []);
 
   const handleLogout = () => {
-    Alert.alert(
-      isRTL ? 'شكراً لمراجعة التطبيق!' : 'Thank you for the review!',
-      isRTL 
-        ? 'يرجى إرسال ملاحظاتكم وتقييمكم إلى يوسف للتطوير أو التأكيد.\n\nهل أنت متأكد من تسجيل الخروج؟'
-        : 'Please send your feedback and rating to Yousif for development and confirmation.\n\nAre you sure you want to log out?',
-      [
-        { text: t('cancel'), style: 'cancel' },
-        { text: t('logout'), onPress: () => logout(), style: 'destructive' },
-      ]
-    );
+    setShowLogoutAlert(true);
   };
 
   const handlePickAvatar = async () => {
@@ -92,14 +85,12 @@ export default function ProfileScreen({ navigation }: any) {
       </Animated.View>
 
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 60 }}>
-        {/* Header */}
+        {/* Back button only — name shown below avatar */}
         <View style={[styles.headerBar, isRTL && { flexDirection: 'row-reverse' }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ChevronLeft color={COLORS.onSurface} size={28} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{isRTL ? (isDriver ? 'الملف الشخصي للكابتن' : 'الملف الشخصي للزبون') : (isDriver ? 'Captain Profile' : 'Passenger Profile')}</Text>
-        <View style={{ width: 44 }} />
-      </View>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <ChevronLeft color={COLORS.onSurface} size={28} />
+          </TouchableOpacity>
+        </View>
 
       {/* Avatar + Name */}
       <View style={styles.header}>
@@ -112,10 +103,17 @@ export default function ProfileScreen({ navigation }: any) {
             <Settings color="#000000" size={16} />
           </TouchableOpacity>
         </View>
+        {/* Name + Role — below avatar, only here */}
         <Text style={styles.userName}>{user?.name}</Text>
         <View style={styles.roleBadge}>
+          {isDriver
+            ? <Car size={14} color="#FFFFFF" />
+            : <User size={14} color="#FFFFFF" />
+          }
           <Text style={styles.roleText}>
-            {isDriver ? t('driver').toUpperCase() : t('passenger').toUpperCase()}
+            {isDriver
+              ? (isRTL ? 'كابتن' : 'Captain')
+              : (isRTL ? 'زبون' : 'Passenger')}
           </Text>
         </View>
       </View>
@@ -242,6 +240,24 @@ export default function ProfileScreen({ navigation }: any) {
         <Text style={styles.logoutText}>{t('logout')}</Text>
       </TouchableOpacity>
     </ScrollView>
+
+    {/* Logout Confirmation — Premium */}
+    <CustomAlert
+      visible={showLogoutAlert}
+      type="warning"
+      emoji="👋"
+      title={isRTL ? 'تسجيل الخروج' : 'Log Out'}
+      message={
+        isRTL
+          ? 'هل أنت متأكد من تسجيل الخروج؟\nيرجى إرسال ملاحظاتك ليوسف لتحسين التطبيق'
+          : 'Are you sure you want to log out?\nPlease send your feedback to Yousif to help us improve.'
+      }
+      buttons={[
+        { text: isRTL ? 'إلغاء' : 'Cancel', style: 'cancel', onPress: () => setShowLogoutAlert(false) },
+        { text: isRTL ? 'تسجيل الخروج' : 'Log Out', style: 'destructive', onPress: () => { setShowLogoutAlert(false); logout(); } },
+      ]}
+      onDismiss={() => setShowLogoutAlert(false)}
+    />
     </View>
   );
 }
@@ -261,9 +277,13 @@ const styles = StyleSheet.create({
   avatarContainer: { width: 100, height: 100, position: 'relative' },
   avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: '#111111' },
   editBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#FFFFFF', width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#111111' },
-  userName: { fontSize: 24, fontWeight: '900', color: '#111111', marginTop: 12 },
-  roleBadge: { backgroundColor: '#111111', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 24, marginTop: 8 },
-  roleText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF', letterSpacing: 0.5 },
+  userName: { fontSize: 26, fontWeight: '900', color: '#111111', marginTop: 14, letterSpacing: -0.5, textAlign: 'center' },
+  roleBadge: { 
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#1C1C1E', paddingHorizontal: 20, paddingVertical: 8, 
+    borderRadius: 24, marginTop: 8 
+  },
+  roleText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF', letterSpacing: 1 },
 
   walletSection: { paddingHorizontal: SPACING.xl, marginBottom: SPACING.md },
 

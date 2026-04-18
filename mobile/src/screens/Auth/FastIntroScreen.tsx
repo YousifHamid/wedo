@@ -1,33 +1,31 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
 import { COLORS, FONT_SIZES, SPACING } from '../../constants/theme';
-import { MapPin } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 export default function FastIntroScreen({ navigation }: any) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const scaleAnim = useRef(new Animated.Value(0.85)).current;
 
   useEffect(() => {
-    // Sequence: Fade and scale up logo
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 800,
+        duration: 700,
         useNativeDriver: true,
       }),
-      Animated.timing(scaleAnim, {
+      Animated.spring(scaleAnim, {
         toValue: 1,
-        duration: 1000,
+        tension: 60,
+        friction: 8,
         useNativeDriver: true,
       }),
     ]).start();
 
-    // Fast transition to Welcome screen
     const timer = setTimeout(() => {
       navigation.replace('Welcome');
-    }, 2500);
+    }, 2200);
 
     return () => clearTimeout(timer);
   }, []);
@@ -43,10 +41,6 @@ export default function FastIntroScreen({ navigation }: any) {
           }
         ]}
       >
-        <Animated.Image 
-           source={require('../../../assets/logo.png')} 
-           style={{ width: 150, height: 150, resizeMode: 'contain', borderRadius: 0 }} 
-        />
         <Text style={styles.brandText}>Wedo</Text>
         <View style={styles.line} />
         <Text style={styles.tagline}>ويدو خيارك الأول وين ما تمشي</Text>
@@ -71,10 +65,11 @@ const styles = StyleSheet.create({
     alignItems: 'center' 
   },
   brandText: { 
-    fontSize: FONT_SIZES.display, 
-    fontWeight: 'bold', 
+    fontSize: 72, 
+    fontWeight: '900', 
     color: '#000000',
-    marginTop: SPACING.md 
+    letterSpacing: -3,
+    marginBottom: SPACING.xs,
   },
   line: { 
     width: 40, height: 4, 

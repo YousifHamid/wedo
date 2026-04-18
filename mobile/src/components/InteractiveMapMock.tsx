@@ -10,8 +10,8 @@
  */
 import React, { useRef, useCallback } from 'react';
 import { View, StyleSheet, Animated, PanResponder } from 'react-native';
-import { MapPin } from 'lucide-react-native';
 import { COLORS } from '../constants/theme';
+import WedoMapPin from './WedoMapPin';
 
 interface Driver {
   id: string;
@@ -56,8 +56,8 @@ export default function InteractiveMapMock({ style, drivers = [], onDragStart, o
     onDragStart?.();
     Animated.spring(pinFloatAnim, {
       toValue: 1,
-      tension: 120,
-      friction: 6,
+      tension: 180,
+      friction: 5,
       useNativeDriver: true,
     }).start();
   }, [onDragStart]);
@@ -68,15 +68,15 @@ export default function InteractiveMapMock({ style, drivers = [], onDragStart, o
     onDragEnd?.();
     Animated.spring(pinFloatAnim, {
       toValue: 0,
-      tension: 150,
-      friction: 8,
+      tension: 200,
+      friction: 7,
       useNativeDriver: true,
     }).start();
 
     // Momentum decay — smooth slide after lifting finger
     decayRef.current = Animated.decay(pan, {
-      velocity: { x: -vx * 1.2, y: -vy * 1.2 }, // negative = map scrolls opposite
-      deceleration: 0.993,
+      velocity: { x: -vx * 1.5, y: -vy * 1.5 }, // negative = map scrolls opposite
+      deceleration: 0.990,
       useNativeDriver: false,
     });
     decayRef.current.start();
@@ -86,7 +86,7 @@ export default function InteractiveMapMock({ style, drivers = [], onDragStart, o
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gs) =>
-        Math.abs(gs.dx) > 2 || Math.abs(gs.dy) > 2,
+        Math.abs(gs.dx) > 1 || Math.abs(gs.dy) > 1,
 
       onPanResponderGrant: (e) => {
         // Flatten last offset so pan continues from current position
@@ -106,7 +106,7 @@ export default function InteractiveMapMock({ style, drivers = [], onDragStart, o
         const touches = Array.from(e.nativeEvent.touches);
 
         if (touches.length >= 2) {
-          // ── Pinch to zoom ──────────────────────────────────
+          // ── Pinch to zoom ─────────────────────
           const dist = getDistance(touches);
           if (dist !== null && lastDistRef.current !== null) {
             const factor = dist / lastDistRef.current;
@@ -115,7 +115,7 @@ export default function InteractiveMapMock({ style, drivers = [], onDragStart, o
           }
           lastDistRef.current = dist;
         } else {
-          // ── Single finger pan ──────────────────────────────
+          // ── Single finger pan ─────────────────────
           if (!isDraggingRef.current) startDrag();
           // Move grid OPPOSITE to finger → map feel
           pan.x.setValue(-gs.dx);
@@ -135,18 +135,18 @@ export default function InteractiveMapMock({ style, drivers = [], onDragStart, o
     })
   ).current;
 
-  // Pin lift amount when dragging
+  // Pin lift amount when dragging — Uber style: rises high and casts shadow
   const pinTranslateY = pinFloatAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, -18],
+    outputRange: [0, -24],
   });
   const shadowOpacity = pinFloatAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.35, 0.1],
+    outputRange: [0.35, 0.08],
   });
   const shadowScaleX = pinFloatAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 2.2],
+    outputRange: [1, 2.8],
   });
 
   return (
@@ -201,19 +201,7 @@ export default function InteractiveMapMock({ style, drivers = [], onDragStart, o
 
       {/* ── Center pin — ALWAYS FIXED at screen center ── */}
       <View style={styles.pinArea} pointerEvents="none">
-        <Animated.View style={[styles.pinWrapper, { transform: [{ translateY: pinTranslateY }] }]}>
-          <View style={styles.luxuryPin}>
-            <View style={styles.luxuryPinInner} />
-            <View style={styles.luxuryPinStem} />
-          </View>
-        </Animated.View>
-        {/* Shadow dot under pin */}
-        <Animated.View
-          style={[
-            styles.pinShadow,
-            { opacity: shadowOpacity, transform: [{ scaleX: shadowScaleX }] },
-          ]}
-        />
+        <WedoMapPin isDragging={pinFloatAnim.__getValue ? pinFloatAnim.__getValue() > 0.3 : false} size={52} />
       </View>
     </View>
   );

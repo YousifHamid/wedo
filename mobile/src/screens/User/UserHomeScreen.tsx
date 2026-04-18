@@ -386,10 +386,7 @@ export default function UserHomeScreen({ navigation }: any) {
           </View>
 
           <View style={styles.brandContainer}>
-            <Image
-              source={require('../../../assets/logo.png')}
-              style={styles.brandLogo}
-            />
+            <Text style={styles.brandWordmark}>Wedo</Text>
           </View>
         </View>
       )}
@@ -437,8 +434,8 @@ export default function UserHomeScreen({ navigation }: any) {
       {/* Interactive Swipeable Bottom Sheet */}
       {!isDragging && (
       <SwipeableBottomSheet 
-         snapPoints={selectedDropoff ? [height * 0.58] : [height * 0.52, 230]} 
-         initialSnapIndex={selectedDropoff ? 0 : 1}
+         snapPoints={selectedDropoff ? [height * 0.75] : [height * 0.52, 240]} 
+         initialSnapIndex={0}
          style={{ paddingBottom: Math.max(insets.bottom, 16), padding: selectedDropoff ? 0 : undefined, overflow: 'hidden' }}
       >
         {!selectedDropoff ? (
@@ -487,48 +484,51 @@ export default function UserHomeScreen({ navigation }: any) {
 
                    <View style={styles.divider} />
 
-                   {/* Destination Input */}
+                   {/* Destination Input + suggestions inline */}
                    <View style={styles.inputBoxActive}>
-                      <TextInput
-                        placeholder={isRTL ? 'حدد وجهتك المراد الزهاب اليها' : 'Find a destination...'}
-                        placeholderTextColor="#9ca3af"
-                        style={[styles.searchInput, isRTL && { textAlign: 'right' }]}
-                        value={destination}
-                        onChangeText={(val) => { setDestination(val); setShowSuggestions(true); }}
-                      />
+                     <TextInput
+                       placeholder={isRTL ? 'حدد وجهتك المراد الزهاب اليها' : 'Find a destination...'}
+                       placeholderTextColor="#9ca3af"
+                       style={[styles.searchInput, isRTL && { textAlign: 'right' }]}
+                       value={destination}
+                       onChangeText={(val) => { setDestination(val); setShowSuggestions(true); }}
+                     />
                    </View>
+
+                   {/* Suggestions — appear inside the search card as a dropdown */}
+                   {showSuggestions && destination.length > 0 && filteredZones.length > 0 && (
+                     <View style={styles.inlineSuggestionsWrapper}>
+                       {filteredZones.slice(0, 6).map((zone) => (
+                         <TouchableOpacity
+                           key={zone._id}
+                           style={[styles.inlineSuggestionRow, isRTL && { flexDirection: 'row-reverse' }]}
+                           onPress={() => handleSelectDestination(zone)}
+                           activeOpacity={0.7}
+                         >
+                           <View style={styles.suggestionIconBg}>
+                             <MapPin color={COLORS.primary} size={16} />
+                           </View>
+                           <View style={[styles.suggestionTextWrapper, isRTL ? { paddingRight: 10, alignItems: 'flex-end' } : { paddingLeft: 10, alignItems: 'flex-start' }]}>
+                             <Text style={styles.suggestionTitle} numberOfLines={1}>{isRTL ? zone.nameAr : zone.name}</Text>
+                             <Text style={styles.suggestionSubtitle} numberOfLines={1}>{zone.description || (isRTL ? 'السودان' : 'Sudan')}</Text>
+                           </View>
+                         </TouchableOpacity>
+                       ))}
+                     </View>
+                   )}
                 </View>
              </View>
 
-            {showSuggestions && destination.length > 0 && (
-              <View style={styles.suggestionsWrapper}>
-                {filteredZones.map((zone) => (
-                  <TouchableOpacity key={zone._id} style={[styles.suggestionRow, isRTL && { flexDirection: 'row-reverse' }]} onPress={() => handleSelectDestination(zone)}>
-                    <View style={styles.suggestionIconBg}>
-                       <MapPin color={COLORS.onSurfaceVariant} size={18} />
-                    </View>
-                    <View style={[styles.suggestionTextWrapper, isRTL ? { paddingRight: 12, alignItems: 'flex-end' } : { paddingLeft: 12, alignItems: 'flex-start' }]}>
-                       <Text style={styles.suggestionTitle}>{isRTL ? zone.nameAr : zone.name}</Text>
-                       <Text style={styles.suggestionSubtitle}>{zone.description || (isRTL ? 'السودان' : 'Sudan')}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {/* Book Now Button — full width black pill with car icon */}
-            {!hasDragged && !showSuggestions && (
+            {/* Book Now Button — always visible */}
+            {!showSuggestions && (
               <TouchableOpacity
-                style={[styles.bookNowPill, isRTL && { flexDirection: 'row-reverse' }]}
+                style={styles.bookNowPill}
                 activeOpacity={0.85}
-                onPress={() => {
-                  // If no destination, just prompt search
-                }}
+                onPress={() => {}}
               >
-                <Text style={styles.bookNowPillText}>{isRTL ? 'اطلب الان رحلتك' : 'Book Your Ride Now'}</Text>
-                <View style={styles.bookNowCarCircle}>
-                  <Car color="#1C1C1E" size={22} />
-                </View>
+                <Text style={styles.bookNowPillText} numberOfLines={1} allowFontScaling={false}>
+                  {isRTL ? 'اطلب الان' : 'Book Now'}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -540,10 +540,10 @@ export default function UserHomeScreen({ navigation }: any) {
               <View style={[styles.mockupMainCard, vehicleType === 'premium' && styles.mockupMainCardPremium]}>
                  <View style={[styles.mockupHeaderRow, isRTL && { flexDirection: 'row-reverse' }, { marginBottom: 8 }]}>
                     <Text style={[styles.mockupMainTitle, vehicleType === 'premium' && { color: '#E5E7EB' }]}>{isRTL ? 'السيارة المختارة' : 'RECOMMENDED RIDE'}</Text>
-                    <View style={styles.etaBadge}>
-                       <Clock size={12} color="#000" style={{ marginRight: 4 }} />
-                       <Text style={styles.etaBadgeText}>3 {isRTL ? 'د' : 'min'}</Text>
-                    </View>
+                     <View style={styles.etaBadge}>
+                        <Clock size={12} color="#000" style={{ marginRight: 4 }} />
+                        <Text style={styles.etaBadgeText}>{isRTL ? 'وقت الوصول 3 دقائق' : '3 min arrival'}</Text>
+                     </View>
                  </View>
                  <View style={[styles.carInfoCompactRow, isRTL && { flexDirection: 'row-reverse' }]}>
                     <View style={styles.carVisualColumn}>
@@ -571,31 +571,48 @@ export default function UserHomeScreen({ navigation }: any) {
                        </Text>
                     </View>
                  </View>
-              </View>
+               </View>
 
-              {/* More Cars Block & Book Now Button Combined */}
-              <View style={styles.mockupBottomDark}>
-                 <Text style={[styles.mockupBottomTitle, isRTL && { textAlign: 'right' }]}>{isRTL ? 'سيارات أخرى' : 'More Options'}</Text>
-                 <TouchableOpacity style={[styles.mockupCarRow, isRTL && { flexDirection: 'row-reverse' }]} onPress={() => handleSelectType(vehicleType === 'premium' ? 'standard' : 'premium')}>
-                    <View>
-                       <Text style={[styles.mockupCarRowTitle, isRTL && { textAlign: 'right' }]}>{vehicleType === 'premium' ? (isRTL ? 'ويدو كلاسيك' : 'Wedo Classic') : (isRTL ? 'ويدو مميز' : 'Wedo VIP')}</Text>
-                       <View style={[styles.mockupMainSubRow, isRTL && { flexDirection: 'row-reverse' }, { marginTop: 4 }]}>
-                          <Navigation size={12} color="#9CA3AF" style={isRTL ? {marginLeft: 4} : {marginRight: 4}} />
-                          <Text style={styles.mockupBottomSubText}>{isRTL ? '> 2 كم' : '> 2 km'}    🔋 {vehicleType === 'premium' ? 'Eco' : 'Premium'}</Text>
-                       </View>
-                    </View>
-                    <View style={styles.mockupArrowBtn}>
-                       {isRTL ? <ChevronLeft size={28} color="#FFFFFF" /> : <ChevronRight size={28} color="#FFFFFF" />}
-                    </View>
-                 </TouchableOpacity>
+               {/* ── Vehicle Type Selector: عادي / مميز ── */}
+               <View style={styles.vehicleTypeRow}>
+                  <TouchableOpacity
+                    style={[styles.vehicleTypeBtn, vehicleType !== 'premium' && styles.vehicleTypeBtnActive]}
+                    onPress={() => handleSelectType('standard')}
+                    activeOpacity={0.82}
+                  >
+                    <Text style={[styles.vehicleTypeBtnLabel, vehicleType !== 'premium' && { color: '#000', fontWeight: '900' }]}>
+                      {isRTL ? 'عادي' : 'Standard'}
+                    </Text>
+                    <Text style={[styles.vehicleTypeBtnPrice, vehicleType !== 'premium' && { color: '#333' }]}>
+                      {standardFare.toLocaleString()} SDG
+                    </Text>
+                  </TouchableOpacity>
 
-                 <View style={styles.mockupDivider} />
+                  <TouchableOpacity
+                    style={[styles.vehicleTypeBtn, vehicleType === 'premium' && styles.vehicleTypeBtnActivePremium]}
+                    onPress={() => handleSelectType('premium')}
+                    activeOpacity={0.82}
+                  >
+                    <Text style={[styles.vehicleTypeBtnLabel, vehicleType === 'premium' && { color: '#fff', fontWeight: '900' }]}>
+                      {isRTL ? 'مميز' : 'Premium'}
+                    </Text>
+                    <Text style={[styles.vehicleTypeBtnPrice, vehicleType === 'premium' && { color: '#D1FAE5' }]}>
+                      {premiumFare.toLocaleString()} SDG
+                    </Text>
+                  </TouchableOpacity>
+               </View>
 
-                 {/* Book Button embedded safely at bottom of stack */}
-                 <TouchableOpacity style={styles.mockupBookBtn} onPress={bookingMode === 'now' ? handleRequestRide : handleScheduleLater}>
-                    <Text style={styles.mockupBookBtnText}>{isRTL ? 'احجز الآن بالسيارة المختارة' : 'Book Selected Ride'}</Text>
-                 </TouchableOpacity>
-              </View>
+               {/* ── Confirm Booking ── */}
+               <TouchableOpacity
+                 style={styles.mockupBookBtn}
+                 onPress={bookingMode === 'now' ? handleRequestRide : handleScheduleLater}
+                 activeOpacity={0.88}
+               >
+                 <Text style={styles.mockupBookBtnText} numberOfLines={1} adjustsFontSizeToFit>
+                   {isRTL ? 'اكمل حجز رحلتك' : 'Confirm & Book Ride'}
+                 </Text>
+               </TouchableOpacity>
+
             </View>
           </View>
         )}
@@ -632,8 +649,9 @@ const styles = StyleSheet.create({
   langPill: { backgroundColor: '#1A1B1F', paddingHorizontal: 16, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', ...SHADOWS.sm },
   langPillText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
   
-  brandContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#000000', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 24, ...SHADOWS.sm },
+  brandContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#000000', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 24, ...SHADOWS.sm },
   brandLogo: { width: 34, height: 34, resizeMode: 'contain', borderRadius: 6 },
+  brandWordmark: { fontSize: 20, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.5 },
   brandTitle: { fontSize: 18, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.5, marginLeft: 8 },
   
   // Floating Search Pill
@@ -644,13 +662,28 @@ const styles = StyleSheet.create({
   pillText: { fontSize: 16, fontWeight: '700', color: COLORS.onSurface },
 
   // Premium Bottom Sheet (Using Swipeable Wrapper, so only overrides needed)
-  sheetContent: { paddingHorizontal: 24, paddingBottom: 24 },
-  greetingText: { fontSize: 24, fontWeight: '900', color: COLORS.onSurface, marginBottom: 20, letterSpacing: -0.5 },
+  sheetContent: { paddingHorizontal: 24, paddingBottom: 16, paddingTop: 8 },
+  greetingText: { fontSize: 22, fontWeight: '900', color: COLORS.onSurface, marginBottom: 16, letterSpacing: -0.5 },
   
-  // "اطلب الآن" wide black pill button matching reference design
-  bookNowPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1C1C1E', borderRadius: 50, paddingVertical: 10, paddingLeft: 28, paddingRight: 8, marginTop: 8 },
-  bookNowPillText: { fontSize: 20, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.3 },
-  bookNowCarCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' },
+  // "اطلب الان" pill — centered, always visible white text on black
+  bookNowPill: { 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    backgroundColor: '#000000', 
+    borderRadius: 50, 
+    paddingVertical: 18, 
+    paddingHorizontal: 24, 
+    marginTop: 12,
+    minHeight: 56,
+  },
+  bookNowPillText: { 
+    fontSize: 18, 
+    fontWeight: '900', 
+    color: '#FFFFFF', 
+    letterSpacing: 0.5,
+    includeFontPadding: false,
+  },
+  bookNowCarCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', flexShrink: 0, marginLeft: 8 },
   
   searchContainer: { flexDirection: 'row', backgroundColor: '#f9fafb', borderRadius: 20, padding: 16, marginBottom: 16 },
   timeline: { width: 20, alignItems: 'center', paddingVertical: 8 },
@@ -667,10 +700,25 @@ const styles = StyleSheet.create({
 
   suggestionsWrapper: { maxHeight: 200, marginBottom: 16 },
   suggestionRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
-  suggestionIconBg: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' },
+  suggestionIconBg: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center' },
   suggestionTextWrapper: { flex: 1, justifyContent: 'center' },
   suggestionTitle: { fontSize: 15, fontWeight: '700', color: COLORS.onSurface },
-  suggestionSubtitle: { fontSize: 13, color: '#6b7280', marginTop: 2 },
+  suggestionSubtitle: { fontSize: 12, color: '#6b7280', marginTop: 1 },
+
+  // Inline dropdown suggestions (inside the search card)
+  inlineSuggestionsWrapper: {
+    marginTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingTop: 4,
+  },
+  inlineSuggestionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f9fafb',
+  },
 
   quickActionsContainer: { flexDirection: 'column', gap: 12, marginBottom: 0 },
   quickActionCardDark: { 
@@ -821,8 +869,29 @@ const styles = StyleSheet.create({
   mockupCarRowTitle: { fontSize: 16, fontWeight: '900', color: '#FFF' },
   mockupArrowBtn: { justifyContent: 'center', alignItems: 'center' },
   mockupDivider: { height: 1, backgroundColor: '#333', marginVertical: 16 },
-  mockupBookBtn: { alignSelf: 'center', backgroundColor: '#FFFFFF', paddingVertical: 10, paddingHorizontal: 24, borderRadius: 12, alignItems: 'center', marginTop: 4 },
-  mockupBookBtnText: { color: '#000', fontSize: 14, fontWeight: '900' },
+  mockupBookBtn: { 
+    backgroundColor: '#1C1C1E', paddingVertical: 18, paddingHorizontal: 24, 
+    borderRadius: 18, alignItems: 'center', marginTop: 16,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6,
+  },
+  mockupBookBtnText: { color: '#FFFFFF', fontSize: 17, fontWeight: '900', letterSpacing: -0.3 },
+
+  // Vehicle Type Selector (Standard / Premium)
+  vehicleTypeRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  vehicleTypeBtn: { 
+    flex: 1, paddingVertical: 14, paddingHorizontal: 12, borderRadius: 16, 
+    backgroundColor: '#F3F4F6', borderWidth: 2, borderColor: 'transparent',
+    alignItems: 'center',
+  },
+  vehicleTypeBtnActive: { 
+    backgroundColor: '#F0FFF4', borderColor: '#10B981',
+  },
+  vehicleTypeBtnActivePremium: { 
+    backgroundColor: '#1C1C1E', borderColor: '#555',
+  },
+  vehicleTypeBtnIcon: { fontSize: 22, marginBottom: 4 },
+  vehicleTypeBtnLabel: { fontSize: 15, fontWeight: '700', color: '#6B7280' },
+  vehicleTypeBtnPrice: { fontSize: 13, fontWeight: '800', color: '#9CA3AF', marginTop: 4 },
   
   // Enhanced Trip Details Top Box
   enhancedRouteContainer: { position: 'absolute', left: 16, right: 16, zIndex: 10 },

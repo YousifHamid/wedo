@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Star, Banknote, CheckCircle, Smartphone, ArrowRight } from 'lucide-react-native';
+import { Star, Banknote, CheckCircle, Smartphone, ArrowRight, ChevronLeft } from 'lucide-react-native';
 import { Linking, View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ActivityIndicator, Animated, Easing, ScrollView, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import useTripStore from '../../store/useTripStore';
@@ -71,6 +71,13 @@ export default function TripCompleteScreen({ navigation }: any) {
     <SafeAreaView style={styles.container}>
       {/* Green gradient header */}
       <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.headerBackBtn} 
+          onPress={() => { resetTrip(); navigation.navigate('UserHome'); }}
+          activeOpacity={0.85}
+        >
+          <ChevronLeft color="rgba(255,255,255,0.85)" size={26} />
+        </TouchableOpacity>
         <Animated.View style={[styles.successCircle, { transform: [{ scale: checkScale }] }]}>
           <CheckCircle color="#fff" size={44} />
         </Animated.View>
@@ -180,6 +187,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
+  },
+  headerBackBtn: {
+    position: 'absolute',
+    top: 54,
+    left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   successCircle: {
     width: 72,

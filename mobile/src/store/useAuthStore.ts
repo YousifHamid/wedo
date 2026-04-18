@@ -25,15 +25,23 @@ interface User {
   isOnline?: boolean;
 }
 
+interface SavedCredentials {
+  phone: string;
+  password: string;
+  role: 'rider' | 'driver';
+}
+
 interface AuthState {
   user: User | null;
   token: string | null;
   isServerEnabled: boolean;
   originalRole: 'rider' | 'driver' | 'admin' | null;
+  savedCredentials: SavedCredentials | null;  // Always persisted for auto-fill
   setUser: (user: User, token: string) => void;
   updateUser: (updates: Partial<User>) => void;
   setServerEnabled: (enabled: boolean) => void;
   switchRole: () => void;
+  saveCredentials: (creds: SavedCredentials) => void;
   logout: () => void;
 }
 
@@ -44,17 +52,18 @@ const useAuthStore = create<AuthState>()(
       token: null,
       isServerEnabled: true,
       originalRole: null,
+      savedCredentials: null,
       setUser: (user, token) => set({ user, token, originalRole: user.role }),
       updateUser: (updates) => set((state) => ({
         user: state.user ? { ...state.user, ...updates } : null,
       })),
+      saveCredentials: (creds) => set({ savedCredentials: creds }),
       switchRole: () => set((state) => {
         if (!state.user) return state;
         const actualOriginalRole = state.originalRole || state.user.role;
         // Only drivers can switch between driver and rider
         if (actualOriginalRole === 'driver') {
           const newRole = state.user.role === 'driver' ? 'rider' : 'driver';
-          // Dynamically change the name for testing reviewers when switching
           const newName = state.user._id?.includes('mock') 
             ? (newRole === 'driver' ? 'Reviewer Captain' : 'Reviewer Passenger')
             : state.user.name;
@@ -64,6 +73,7 @@ const useAuthStore = create<AuthState>()(
       }),
       setServerEnabled: (enabled) => set({ isServerEnabled: enabled }),
 
+      // ✅ Logout clears session but KEEPS savedCredentials for auto-fill
       logout: () => set({ user: null, token: null, originalRole: null }),
     }),
     {

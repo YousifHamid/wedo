@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import useAuthStore from '../../store/useAuthStore';
 import api from '../../services/api';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
+import CustomAlert from '../../components/CustomAlert';
 
 export default function DriverWalletScreen({ navigation }: any) {
   const { t, i18n } = useTranslation();
@@ -200,29 +201,14 @@ export default function DriverWalletScreen({ navigation }: any) {
         )}
       </ScrollView>
 
-      {/* Custom Alert Modal */}
-      <Modal visible={alertConfig.visible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.alertBox}>
-            <View style={{ alignItems: 'center', marginBottom: 16 }}>
-              {alertConfig.type === 'error' ? (
-                <AlertCircle color={COLORS.error} size={48} strokeWidth={1.5} />
-              ) : (
-                <CheckCircle color={COLORS.success} size={48} strokeWidth={1.5} />
-              )}
-            </View>
-            <Text style={styles.alertTitle}>{alertConfig.title}</Text>
-            <Text style={styles.alertMessage}>{alertConfig.message}</Text>
-            <TouchableOpacity 
-              style={styles.alertBtn} 
-              onPress={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.alertBtnText}>{isRTL ? 'حسنًا' : 'OK'}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <CustomAlert
+        visible={alertConfig.visible}
+        type={alertConfig.type === 'success' ? 'success' : 'error'}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={[{ text: isRTL ? 'حسناً' : 'OK', style: 'default', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]}
+        onDismiss={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
 
     </SafeAreaView>
   );

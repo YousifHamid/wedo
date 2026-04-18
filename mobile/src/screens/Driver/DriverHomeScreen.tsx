@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Modal, Alert, Keyboard, TextInput, Switch, Platform, Linking, Image } from 'react-native';
-import { Power, MapPin, Navigation, User, Bell, Wallet, Clock, Car, TrendingUp, Banknote, Layers, PlusCircle, Shield, Crown, X, ChevronRight, Search, Menu } from 'lucide-react-native';
+import { Power, MapPin, Navigation, User, Wallet, Clock, Car, TrendingUp, Banknote, Layers, PlusCircle, Shield, Crown, X, ChevronRight, Search, Menu } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import * as Location from 'expo-location';
 import useAuthStore from '../../store/useAuthStore';
 import useTripStore from '../../store/useTripStore';
 import api from '../../services/api';
 import { getSocket } from '../../services/socket';
+import soundManager from '../../services/soundManager';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
 import { DISPATCH_COUNTDOWN } from '../../config/env';
 import { SafeMapView as MapView, SafeMarker as Marker, SafePolyline as Polyline } from '../../components/MapViewMock';
@@ -22,7 +23,7 @@ export default function DriverHomeScreen({ navigation }: any) {
   const { user, updateUser } = useAuthStore();
   const isRTL = i18n.language === 'ar';
   
-  const [isOnline, setIsOnline] = useState(user?.isOnline || false);
+  const [isOnline, setIsOnline] = useState(false); // Always starts OFFLINE
   const [location, setLocation] = useState<any>(null);
   const [mapError, setMapError] = useState(false);
   const [incomingTrip, setIncomingTrip] = useState<any>(null);
@@ -142,6 +143,8 @@ export default function DriverHomeScreen({ navigation }: any) {
       if (canAccept && !incomingTrip) {
         setIncomingTrip({ ...data, isQueuedTrip: !!activeTrip });
         setCountdown(DISPATCH_COUNTDOWN);
+        // 🔔 Play driver ringtone
+        soundManager.playDriverNewTrip();
       }
     });
 
@@ -165,6 +168,7 @@ export default function DriverHomeScreen({ navigation }: any) {
   }, [incomingTrip, countdown]);
 
   const handleAccept = async () => {
+    soundManager.stopDriverRingtone(); // ✅ Stop ringtone on accept
     setActiveTrip(incomingTrip);
     setIncomingTrip(null);
     setRejectionCount(0);
@@ -190,6 +194,7 @@ export default function DriverHomeScreen({ navigation }: any) {
   };
 
   const handleRejectTrip = () => {
+    soundManager.stopDriverRingtone(); // 🔇 Stop ringtone on reject
     const newCount = rejectionCount + 1;
     setRejectionCount(newCount);
     setIncomingTrip(null);
@@ -370,7 +375,9 @@ export default function DriverHomeScreen({ navigation }: any) {
           <View style={[styles.statusDot, { backgroundColor: isOnline ? '#FFF' : '#000' }]} />
           <Text style={[styles.statusText, isOnline && { color: '#FFF' }]}>{isOnline ? t('online') : t('offline')}</Text>
         </View>
-        <TouchableOpacity style={styles.iconBtn}><Bell color="#FFFFFF" size={22} /></TouchableOpacity>
+        <View style={styles.wedoBrandPill}>
+          <Text style={styles.wedoBrandText}>Wedo</Text>
+        </View>
       </View>
 
       {showDemandMap && (
@@ -393,6 +400,23 @@ export default function DriverHomeScreen({ navigation }: any) {
         <View style={styles.fabContainer}>
           <TouchableOpacity style={[styles.fab, showDemandMap && { backgroundColor: '#000' }]} onPress={() => setShowDemandMap(!showDemandMap)}><TrendingUp size={24} color="#FFFFFF" /></TouchableOpacity>
           <TouchableOpacity style={[styles.fab, isOnline && { backgroundColor: '#10B981', borderColor: '#059669' }]} onPress={handleToggleOnline}><Power size={24} color="#FFFFFF" /></TouchableOpacity>
+        </View>
+      )}
+
+      {/* Welcome Banner — shown when offline with no active trip */}
+      {!isOnline && !activeTrip && (
+        <View style={styles.welcomeBanner}>
+          <Text style={styles.welcomeBannerEmoji}>🚗</Text>
+          <Text style={styles.welcomeBannerTitle}>
+            {isRTL ? `مرحباً ${user?.name?.split(' ')[0] || 'كابيتانو'}!` : `Welcome, Captain!`}
+          </Text>
+          <Text style={styles.welcomeBannerSub}>
+            {isRTL ? 'ابدأ الآن وزِد دخلك يا كابيتانو 💪' : 'Go online now and start earning!'}
+          </Text>
+          <TouchableOpacity style={styles.welcomeBannerBtn} onPress={handleToggleOnline} activeOpacity={0.85}>
+            <Power size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Text style={styles.welcomeBannerBtnText}>{isRTL ? 'ابدأ استقبال الرحلات' : 'Start Receiving Trips'}</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -608,11 +632,44 @@ const styles = StyleSheet.create({
   mockCarOverlay: { position: 'absolute', zIndex: 5 },
   topBar: { position: 'absolute', top: 50, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', zIndex: 10 },
   iconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1C1C1E', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#333', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+  wedoBrandPill: { backgroundColor: '#000000', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 24, borderWidth: 1, borderColor: '#333', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
+  wedoBrandText: { fontSize: 18, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.5 },
   statusBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1C1C1E', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, borderWidth: 1, borderColor: '#333', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
   statusBadgeOnline: { borderColor: COLORS.success, backgroundColor: '#112211' },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
   statusText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF' },
   statusTextOnline: { color: COLORS.success },
+
+  // Welcome Banner (shown when driver is offline)
+  welcomeBanner: {
+    position: 'absolute',
+    bottom: 110,
+    left: 16,
+    right: 16,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 24,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 12,
+    zIndex: 20,
+  },
+  welcomeBannerEmoji: { fontSize: 36, marginBottom: 8 },
+  welcomeBannerTitle: { fontSize: 22, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.5, marginBottom: 6 },
+  welcomeBannerSub: { fontSize: 14, color: '#9CA3AF', fontWeight: '600', marginBottom: 20, textAlign: 'center', lineHeight: 20 },
+  welcomeBannerBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#10B981',
+    paddingVertical: 14, paddingHorizontal: 28,
+    borderRadius: 50,
+    shadowColor: '#10B981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6,
+  },
+  welcomeBannerBtnText: { fontSize: 15, fontWeight: '900', color: '#FFFFFF' },
   fabContainer: { position: 'absolute', right: 20, bottom: 40, gap: 12 },
   fab: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#1C1C1E', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#333', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
   demandLegend: { position: 'absolute', top: 110, left: 20, right: 20, backgroundColor: '#1C1C1E', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#333', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 6 },

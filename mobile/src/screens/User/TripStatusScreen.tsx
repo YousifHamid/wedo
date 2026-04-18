@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert, Share, Modal, Platform, Dimensions, Image, Linking } from 'react-native';
-import { Navigation, Phone, MapPin, ChevronRight, AlertCircle, PlusCircle, Share2, ShieldAlert, Car, Star, X, Clock, User } from 'lucide-react-native';
+import { Navigation, Phone, MapPin, ChevronRight, AlertCircle, PlusCircle, Share2, ShieldAlert, Car, Star, X, Clock, User, ChevronLeft } from 'lucide-react-native';
+import CustomAlert from '../../components/CustomAlert';
 import { useTranslation } from 'react-i18next';
 import useTripStore from '../../store/useTripStore';
 import useAuthStore from '../../store/useAuthStore';
@@ -138,7 +139,20 @@ export default function TripStatusScreen({ navigation }: any) {
   };
 
   const handleComplaint = () => {
-    setShowSafetyModal(true);
+    const supportNumber = '+201157155248';
+    Alert.alert(
+      isRTL ? 'تقديم بلاغ' : 'Submit Report',
+      isRTL 
+        ? `سيتم الاتصال بفريق الدعم مباشرةً على الرقم:\n${supportNumber}`
+        : `You will be connected to our support team at:\n${supportNumber}`,
+      [
+        { text: isRTL ? 'إلغاء' : 'Cancel', style: 'cancel' },
+        { 
+          text: isRTL ? 'اتصال الآن' : 'Call Now', 
+          onPress: () => Linking.openURL(`tel:${supportNumber}`) 
+        },
+      ]
+    );
   };
   
   const submitSafetyReport = (reason: string) => {
@@ -180,7 +194,16 @@ export default function TripStatusScreen({ navigation }: any) {
           </MapView>
       </View>
 
-      {/* Trip Timeline Progress — visible only while driver is en-route to pickup */}
+      {/* Floating back button - always visible */}
+      <TouchableOpacity 
+        style={styles.floatingBackBtn}
+        onPress={handleCancel}
+        activeOpacity={0.85}
+      >
+        <ChevronLeft size={24} color="#fff" />
+      </TouchableOpacity>
+
+      {/* Trip Timeline Progress */}
       {(tripPhase === 'en_route_pickup' || tripPhase === 'arrived') && (
         <View style={styles.timelineBar}>
           <View style={styles.timelineSteps}>
@@ -286,35 +309,32 @@ export default function TripStatusScreen({ navigation }: any) {
         </View>
       </SwipeableBottomSheet>
 
-      <Modal visible={showSafetyModal} transparent animationType="slide">
-        <View style={styles.modalBg}>
-          <View style={styles.modalContent}>
-            <View style={{ alignItems: 'center', marginBottom: 16 }}>
-              <ShieldAlert color={COLORS.error} size={48} />
-              <Text style={{ fontSize: 20, fontWeight: 'bold', marginTop: 8, color: COLORS.error }}>
-                {isRTL ? 'مركز الأمان والطوارئ' : 'Safety & SOS Center'}
-              </Text>
-            </View>
-
-            <TouchableOpacity style={styles.safetyOptionBtn} onPress={() => submitSafetyReport(isRTL ? 'القيادة بتهور' : 'Reckless Driving')}>
-              <Text style={styles.safetyOptionText}>{isRTL ? 'القيادة بتهور / سرعة زائدة' : 'Reckless / Speeding'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.safetyOptionBtn} onPress={() => submitSafetyReport(isRTL ? 'السيارة لا تتطابق' : 'Wrong Vehicle')}>
-              <Text style={styles.safetyOptionText}>{isRTL ? 'السيارة أو السائق لا يتطابق' : 'Vehicle/Driver mismatch'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.safetyOptionBtn} onPress={() => submitSafetyReport(isRTL ? 'تعطل السيارة' : 'Car Breakdown')}>
-              <Text style={styles.safetyOptionText}>{isRTL ? 'تعطل السيارة في الطريق' : 'Car breakdown'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.safetyOptionBtn, { backgroundColor: '#fee2e2' }]} onPress={() => { setShowSafetyModal(false); Alert.alert('999', isRTL ? 'جاري الاتصال بالشرطة...' : 'Calling police...'); }}>
-              <Text style={styles.safetyOptionText}>{isRTL ? 'الاتصال بالطوارئ (الشرطة)' : 'Call Emergency (Police)'}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.cancelBtn, { marginTop: 12 }]} onPress={() => setShowSafetyModal(false)}>
-              <Text style={styles.cancelBtnText}>{t('cancel')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* Safety Report — Premium CustomAlert */}
+      <CustomAlert
+        visible={showSafetyModal}
+        type="error"
+        emoji="🚨"
+        title={isRTL ? 'مركز الأمان والطوارئ' : 'Safety & SOS Center'}
+        message={isRTL ? 'اختر سبب البلاغ لإرساله لفريق الدعم' : 'Select the reason for your report'}
+        buttons={[
+          {
+            text: isRTL ? 'القيادة بتهور' : 'Reckless Driving',
+            style: 'destructive',
+            onPress: () => submitSafetyReport(isRTL ? 'القيادة بتهور' : 'Reckless Driving'),
+          },
+          {
+            text: isRTL ? 'سيارة خاطئة' : 'Wrong Vehicle',
+            style: 'destructive',
+            onPress: () => submitSafetyReport(isRTL ? 'سيارة خاطئة' : 'Wrong Vehicle'),
+          },
+          {
+            text: isRTL ? 'إلغاء' : 'Cancel',
+            style: 'cancel',
+            onPress: () => setShowSafetyModal(false),
+          },
+        ]}
+        onDismiss={() => setShowSafetyModal(false)}
+      />
 
     </View>
   );
@@ -326,7 +346,22 @@ const styles = StyleSheet.create({
   map: { width: '100%', height: '100%' },
   mapGridPlaceholder: { flex: 1, backgroundColor: '#000' },
 
-  timelineBar: { position: 'absolute', top: 50, left: 16, right: 16, backgroundColor: '#1C1C1E', borderRadius: 24, padding: 16, borderWidth: 1, borderColor: '#333', ...SHADOWS.md, zIndex: 10 },
+  floatingBackBtn: {
+    position: 'absolute',
+    top: 50,
+    left: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+
+  timelineBar: { position: 'absolute', top: 50, left: 72, right: 16, backgroundColor: '#1C1C1E', borderRadius: 24, padding: 16, borderWidth: 1, borderColor: '#333', ...SHADOWS.md, zIndex: 10 },
   timelineSteps: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   timelineStep: { alignItems: 'center', width: 70 },
   timelineDot: { width: 30, height: 30, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
