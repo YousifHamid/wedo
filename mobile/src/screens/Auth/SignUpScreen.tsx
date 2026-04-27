@@ -5,7 +5,7 @@ import api from '../../services/api';
 import { connectSocket } from '../../services/socket';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
-import { Phone, Lock, ChevronLeft, UserPlus, User, MapPin } from 'lucide-react-native';
+import { Phone, Lock, ChevronLeft, UserPlus, User, MapPin, Mail } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { COLORS, SPACING, RADIUS, FONT_SIZES } from '../../constants/theme';
 
@@ -178,7 +178,16 @@ export default function SignUpScreen({ route, navigation }: any) {
           disabled={loading}
         >
             <Text style={styles.signUpBtnText}>{loading ? '...' : t('sign_up')}</Text>
-            {!loading && <UserPlus color={COLORS.onPrimary} size={18} style={{ marginLeft: 10 }} />}
+            {!loading && <UserPlus color={COLORS.onPrimary} size={18} style={[isRTL ? { marginRight: 10 } : { marginLeft: 10 }]} />}
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[styles.signUpBtn, { marginTop: SPACING.md }]}
+          activeOpacity={0.7}
+          onPress={() => Alert.alert(isRTL ? 'قريباً' : 'Coming Soon', isRTL ? 'ميزة الدخول عبر البريد ستتوفر قريباً' : 'Email login will be available soon')}
+        >
+          <Text style={styles.signUpBtnText}>{isRTL ? 'أو التسجيل عبر الايميل' : 'Or Register via Email'}</Text>
+          <Mail color={COLORS.onPrimary} size={24} style={isRTL ? { marginRight: 20 } : { marginLeft: 20 }} />
         </TouchableOpacity>
 
         <View style={[styles.footerContainer, isRTL && { flexDirection: 'row-reverse' }]}>

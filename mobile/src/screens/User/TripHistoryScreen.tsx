@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, FlatList, Image } from 'react-native';
-import { ArrowLeft, ChevronRight, Clock, MapPin, Car, User } from 'lucide-react-native';
+import { ArrowLeft, ChevronRight, Clock, MapPin, Car, User, ChevronLeft } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import useAuthStore from '../../store/useAuthStore';
 import { COLORS, SHADOWS } from '../../constants/theme';
@@ -73,16 +73,18 @@ export default function TripHistoryScreen({ navigation }: any) {
     return (
       <TouchableOpacity 
         style={styles.tripCard} 
-        activeOpacity={0.7}
+        activeOpacity={0.8}
         onPress={() => navigation.navigate('TripDetails', { tripData: item })}
       >
         <View style={[styles.tripHeader, isRTL && { flexDirection: 'row-reverse' }]}>
           <View style={[styles.typeBadge, isRTL && { flexDirection: 'row-reverse' }]}>
-             {isDriver ? (
-                <User color="#111" size={14} style={isRTL ? { marginLeft: 4 } : { marginRight: 4 }} />
-             ) : (
-                <Car color="#111" size={14} style={isRTL ? { marginLeft: 4 } : { marginRight: 4 }} />
-             )}
+             <View style={styles.iconWrap}>
+               {isDriver ? (
+                  <User color={COLORS.primary} size={14} />
+               ) : (
+                  <Car color={COLORS.primary} size={14} />
+               )}
+             </View>
              <Text style={styles.typeText}>{isDriver ? `${personName} (${personRoleLabel})` : (isRTL ? item.typeAr : item.type)}</Text>
           </View>
           <Text style={[styles.priceText, isDriver && { color: COLORS.success }]}>
@@ -90,32 +92,36 @@ export default function TripHistoryScreen({ navigation }: any) {
           </Text>
         </View>
 
-      <View style={[styles.tripBody, isRTL && { flexDirection: 'row-reverse' }]}>
-        {/* Route Indicators */}
-        <View style={styles.routeCol}>
-          <View style={styles.routeDot} />
-          <View style={styles.routeLine} />
-          <View style={styles.routeSquare} />
-        </View>
+        <View style={[styles.tripBody, isRTL && { flexDirection: 'row-reverse' }]}>
+          {/* Route Indicators */}
+          <View style={styles.routeCol}>
+            <View style={styles.routeDot} />
+            <View style={styles.routeLine} />
+            <View style={styles.routeSquare} />
+          </View>
 
-        {/* Addresses */}
-        <View style={[styles.addressesCol, isRTL && { alignItems: 'flex-end', marginLeft: 0, marginRight: 12 }]}>
-          <Text style={[styles.addressText, isRTL && { textAlign: 'right' }]}>{isRTL ? item.pickupAr : item.pickup}</Text>
-          <View style={{ height: 16 }} />
-          <Text style={[styles.addressText, isRTL && { textAlign: 'right' }]}>{isRTL ? item.dropoffAr : item.dropoff}</Text>
+          {/* Addresses */}
+          <View style={[styles.addressesCol, isRTL && { alignItems: 'flex-end', marginLeft: 0, marginRight: 12 }]}>
+            <Text style={[styles.addressText, isRTL && { textAlign: 'right' }]}>{isRTL ? item.pickupAr : item.pickup}</Text>
+            <View style={{ height: 24 }} />
+            <Text style={[styles.addressText, isRTL && { textAlign: 'right' }]}>{isRTL ? item.dropoffAr : item.dropoff}</Text>
+          </View>
+          
+          {/* Date and Arrow */}
+          <View style={styles.rightCol}>
+            <View style={[styles.dateRow, isRTL && { flexDirection: 'row-reverse' }]}>
+              <Clock color={COLORS.onSurfaceVariant} size={12} style={isRTL ? { marginLeft: 4 } : { marginRight: 4 }} />
+              <Text style={styles.dateText}>{isRTL ? item.dateAr : item.date}</Text>
+            </View>
+            {isRTL ? (
+              <ChevronLeft color="#CBD5E1" size={20} style={{ marginTop: 12, alignSelf: 'flex-start' }} />
+            ) : (
+              <ChevronRight color="#CBD5E1" size={20} style={{ marginTop: 12, alignSelf: 'flex-end' }} />
+            )}
+          </View>
         </View>
-        
-        {/* Date and Arrow */}
-        <View style={styles.rightCol}>
-           <View style={[styles.dateRow, isRTL && { flexDirection: 'row-reverse' }]}>
-             <Clock color="#6B7280" size={12} style={isRTL ? { marginLeft: 4 } : { marginRight: 4 }} />
-             <Text style={styles.dateText}>{isRTL ? item.dateAr : item.date}</Text>
-           </View>
-           <ChevronRight color="#C0C0C0" size={20} style={isRTL ? { transform: [{ rotate: '180deg' }], marginTop: 12, alignSelf: 'flex-start' } : { marginTop: 12, alignSelf: 'flex-end' }} />
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
   };
 
   return (
@@ -123,7 +129,7 @@ export default function TripHistoryScreen({ navigation }: any) {
       {/* Header */}
       <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
-          <ArrowLeft color="#111" size={28} style={isRTL ? { transform: [{ rotate: '180deg' }] } : {}} />
+          <ArrowLeft color="#1C1C1E" size={22} style={isRTL ? { transform: [{ rotate: '180deg' }] } : {}} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, isRTL && { textAlign: 'right' }]}>
           {isRTL ? 'الرحلات السابقة' : 'Your trips'}
@@ -144,7 +150,7 @@ export default function TripHistoryScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF9F6',
+    backgroundColor: '#F8FAFC',
   },
   header: {
     flexDirection: 'row',
@@ -152,16 +158,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 50,
     paddingBottom: 16,
-    backgroundColor: '#FAF9F6',
+    backgroundColor: '#F8FAFC',
   },
   backBtn: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.sm,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '900',
-    color: '#111',
-    marginLeft: 16,
+    color: '#1C1C1E',
+    marginLeft: 14,
     letterSpacing: -0.5,
   },
   listContent: {
@@ -175,7 +187,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#E2E8F0',
     ...SHADOWS.sm,
   },
   tripHeader: {
@@ -183,27 +195,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
-    paddingBottom: 12,
+    borderBottomColor: '#F1F5F9',
   },
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 12,
+    gap: 8,
+  },
+  iconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#EBF4FF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   typeText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '800',
-    color: '#111',
+    color: '#1C1C1E',
   },
   priceText: {
     fontSize: 16,
-    fontWeight: '800',
-    color: '#111',
+    fontWeight: '900',
+    color: '#1C1C1E',
   },
   tripBody: {
     flexDirection: 'row',
@@ -214,25 +231,22 @@ const styles = StyleSheet.create({
     width: 16,
   },
   routeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#111',
-    borderWidth: 1.5,
-    borderColor: '#111',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary,
   },
   routeSquare: {
-    width: 8,
-    height: 8,
-    backgroundColor: '#fff',
-    borderWidth: 1.5,
-    borderColor: '#111',
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+    backgroundColor: '#F59E0B',
   },
   routeLine: {
-    width: 1.5,
-    height: 20,
-    backgroundColor: '#111',
-    marginVertical: 2,
+    width: 2,
+    height: 24,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 4,
   },
   addressesCol: {
     flex: 1,
@@ -240,8 +254,8 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 14,
-    color: '#4B5563',
-    fontWeight: '500',
+    color: '#475569',
+    fontWeight: '600',
   },
   rightCol: {
     alignItems: 'flex-end',
@@ -250,10 +264,14 @@ const styles = StyleSheet.create({
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   dateText: {
     fontSize: 12,
-    color: '#6B7280',
-    fontWeight: '600',
+    color: COLORS.onSurfaceVariant,
+    fontWeight: '700',
   },
 });

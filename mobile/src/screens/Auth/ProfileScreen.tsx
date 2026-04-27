@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import WalletBalanceCard from '../../components/WalletBalanceCard';
 import CustomAlert from '../../components/CustomAlert';
 import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
-import { Phone, Mail, Car, Settings, LogOut, ChevronLeft, ChevronRight, Star, Wallet, Clock, MessageSquare } from 'lucide-react-native';
+import { Phone, Mail, Car, Settings, LogOut, ChevronLeft, ChevronRight, Star, Wallet, Clock, MessageSquare, User } from 'lucide-react-native';
 
 export default function ProfileScreen({ navigation }: any) {
   const { t, i18n } = useTranslation();
@@ -92,8 +92,8 @@ export default function ProfileScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-      {/* Avatar + Name */}
-      <View style={styles.header}>
+      {/* Avatar + Name Wrapped in Card Style */}
+      <View style={styles.headerCard}>
         <View style={styles.avatarContainer}>
           <Image
             source={{ uri: localAvatar || user?.profilePicture || `https://ui-avatars.com/api/?name=${user?.name}&background=00603e&color=fff&size=128` }}
@@ -103,7 +103,6 @@ export default function ProfileScreen({ navigation }: any) {
             <Settings color="#000000" size={16} />
           </TouchableOpacity>
         </View>
-        {/* Name + Role — below avatar, only here */}
         <Text style={styles.userName}>{user?.name}</Text>
         <View style={styles.roleBadge}>
           {isDriver
@@ -273,17 +272,22 @@ const styles = StyleSheet.create({
   backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   headerTitle: { fontSize: 22, fontWeight: '900', color: '#111111', letterSpacing: -0.5 },
 
-  header: { alignItems: 'center', marginBottom: 24 },
-  avatarContainer: { width: 100, height: 100, position: 'relative' },
-  avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: '#111111' },
-  editBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#FFFFFF', width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#111111' },
-  userName: { fontSize: 26, fontWeight: '900', color: '#111111', marginTop: 14, letterSpacing: -0.5, textAlign: 'center' },
+  headerCard: { 
+    alignItems: 'center', marginBottom: 24,
+    backgroundColor: '#FFFFFF', marginHorizontal: 20,
+    borderRadius: 24, paddingVertical: 24, ...SHADOWS.sm,
+    borderWidth: 1, borderColor: '#E5E7EB'
+  },
+  avatarContainer: { width: 90, height: 90, position: 'relative' },
+  avatar: { width: 90, height: 90, borderRadius: 45, borderWidth: 3, borderColor: '#111111' },
+  editBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#FFFFFF', width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#111111' },
+  userName: { fontSize: 20, fontWeight: '900', color: '#111111', marginTop: 14, letterSpacing: -0.5, textAlign: 'center' },
   roleBadge: { 
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#1C1C1E', paddingHorizontal: 20, paddingVertical: 8, 
+    backgroundColor: COLORS.primary, paddingHorizontal: 16, paddingVertical: 6, 
     borderRadius: 24, marginTop: 8 
   },
-  roleText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF', letterSpacing: 1 },
+  roleText: { fontSize: 12, fontWeight: '900', color: '#FFFFFF', letterSpacing: 1 },
 
   walletSection: { paddingHorizontal: SPACING.xl, marginBottom: SPACING.md },
 

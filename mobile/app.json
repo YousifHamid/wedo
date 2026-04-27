@@ -4,6 +4,7 @@
     "slug": "namshi",
     "version": "1.0.0",
     "orientation": "portrait",
+    "newArchEnabled": true,
     "icon": "./assets/appstore.png",
     "userInterfaceStyle": "light",
     "splash": {
@@ -15,6 +16,7 @@
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_LOCATION",
         "android.permission.RECORD_AUDIO"
@@ -40,8 +42,6 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Wedo needs background location to track your trip and ensure safety even when the app is minimized.",
         "NSLocationAlwaysUsageDescription": "Wedo needs background location to notify you of trip status and for driver tracking.",
         "UIBackgroundModes": [
-          "location",
-          "fetch",
           "location",
           "fetch"
         ],

@@ -419,6 +419,7 @@ i18n
     resources,
     lng: 'ar', // Arabic is the base language
     fallbackLng: 'en',
+    compatibilityJSON: 'v3', // Fix for React Native Intl API pluralResolver fallback warning
     interpolation: {
       escapeValue: false,
     },

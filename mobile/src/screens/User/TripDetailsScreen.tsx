@@ -74,7 +74,7 @@ export default function TripDetailsScreen({ route, navigation }: any) {
       {/* Header */}
       <View style={[styles.header, isRTL && { flexDirection: 'row-reverse' }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
-          <ArrowLeft color="#111" size={28} style={isRTL ? { transform: [{ rotate: '180deg' }] } : {}} />
+          <ArrowLeft color="#1C1C1E" size={22} style={isRTL ? { transform: [{ rotate: '180deg' }] } : {}} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, isRTL && { textAlign: 'right' }]}>
           {isRTL ? 'تفاصيل الرحلة' : 'Trip details'}
@@ -85,7 +85,7 @@ export default function TripDetailsScreen({ route, navigation }: any) {
         {/* Map Snapshot */}
         <View style={styles.mapContainer}>
           <Image 
-            source={{ uri: 'https://maps.googleapis.com/maps/api/staticmap?center=29.988,31.142&zoom=11&size=600x300&maptype=roadmap&path=color:0x000000ff|weight:4|29.988,31.142|30.012,31.205|30.044,31.235|30.028,31.408&markers=color:black|size:small|29.988,31.142&markers=color:black|size:small|30.028,31.408&key=YOUR_API_KEY' }} 
+            source={{ uri: 'https://maps.googleapis.com/maps/api/staticmap?center=29.988,31.142&zoom=11&size=600x300&maptype=roadmap&path=color:0x1877F2ff|weight:4|29.988,31.142|30.012,31.205|30.044,31.235|30.028,31.408&markers=color:blue|size:small|29.988,31.142&markers=color:orange|size:small|30.028,31.408&key=YOUR_API_KEY' }} 
             style={styles.mapImage} 
             resizeMode="cover"
           />
@@ -99,8 +99,7 @@ export default function TripDetailsScreen({ route, navigation }: any) {
             </Text>
           </View>
           <View style={styles.avatarContainer}>
-             {/* Using an anonymous avatar similar to screenshot or real avatar */}
-             <Image source={{ uri: !isDriver ? (assignedDriver?.profilePicture || `https://ui-avatars.com/api/?name=${personName}&background=e5e7eb&color=9ca3af&size=128`) : `https://ui-avatars.com/api/?name=${personName}&background=0084FF&color=fff&size=128` }} style={styles.avatar} />
+             <Image source={{ uri: !isDriver ? (assignedDriver?.profilePicture || `https://ui-avatars.com/api/?name=${personName}&background=EBF4FF&color=1877F2&size=128`) : `https://ui-avatars.com/api/?name=${personName}&background=EBF4FF&color=1877F2&size=128` }} style={styles.avatar} />
           </View>
         </View>
 
@@ -113,7 +112,7 @@ export default function TripDetailsScreen({ route, navigation }: any) {
         {/* Receipt Button */}
         <View style={[styles.receiptRow, isRTL && { justifyContent: 'flex-end' }]}>
           <TouchableOpacity style={[styles.receiptBtn, isRTL && { flexDirection: 'row-reverse' }]} onPress={handleReceipt} activeOpacity={0.7}>
-            <Receipt color="#111" size={20} style={isRTL ? { marginLeft: 8 } : { marginRight: 8 }} />
+            <Receipt color={COLORS.primary} size={18} style={isRTL ? { marginLeft: 8 } : { marginRight: 8 }} />
             <Text style={styles.receiptBtnText}>{isRTL ? 'الإيصال' : 'Receipt'}</Text>
           </TouchableOpacity>
         </View>
@@ -154,7 +153,9 @@ export default function TripDetailsScreen({ route, navigation }: any) {
         {!isDriver && (
           <View style={[styles.actionRow, isRTL && { flexDirection: 'row-reverse' }]}>
             <View style={[styles.actionLeft, isRTL && { flexDirection: 'row-reverse' }]}>
-               <HeartHandshake color="#111" size={24} style={isRTL ? { marginLeft: 12 } : { marginRight: 12 }} />
+               <View style={[styles.actionIconWrap, { backgroundColor: '#FEF2F2' }]}>
+                 <HeartHandshake color={COLORS.error} size={18} />
+               </View>
                <Text style={styles.actionMainText}>{isRTL ? 'لم تتم إضافة إكرامية' : 'No tip added'}</Text>
             </View>
             <TouchableOpacity style={styles.actionBtn} onPress={handleTip}>
@@ -166,7 +167,9 @@ export default function TripDetailsScreen({ route, navigation }: any) {
         {/* Rating Row */}
         <View style={[styles.actionRow, isRTL && { flexDirection: 'row-reverse' }, { borderBottomWidth: 0, paddingBottom: 16 }]}>
           <View style={[styles.actionLeft, isRTL && { flexDirection: 'row-reverse' }]}>
-             <Star color="#111" size={24} style={isRTL ? { marginLeft: 12 } : { marginRight: 12 }} />
+             <View style={[styles.actionIconWrap, { backgroundColor: '#FFFBEB' }]}>
+               <Star color="#F59E0B" size={18} />
+             </View>
              <Text style={styles.actionMainText}>{isRTL ? 'لا يوجد تقييم' : 'No rating'}</Text>
           </View>
           <TouchableOpacity style={styles.actionBtn} onPress={handleRate}>
@@ -181,10 +184,10 @@ export default function TripDetailsScreen({ route, navigation }: any) {
           </Text>
 
           <TouchableOpacity style={[styles.helpItem, isRTL && { flexDirection: 'row-reverse' }]} onPress={handleLostItem} activeOpacity={0.7}>
-            <View style={styles.helpIconContainer}>
-               <Key color="#111" size={20} />
+            <View style={[styles.helpIconWrap, { backgroundColor: '#EBF4FF' }]}>
+               <Key color={COLORS.primary} size={18} />
             </View>
-            <View style={[styles.helpTextContainer, isRTL && { alignItems: 'flex-end', paddingRight: 16 }]} >
+            <View style={[styles.helpTextContainer, isRTL && { alignItems: 'flex-end', paddingRight: 14, paddingLeft: 0 }]} >
                <Text style={[styles.helpItemTitle, isRTL && { textAlign: 'right' }]}>
                  {isDriver ? (isRTL ? 'العثور على غرض مفقود' : 'Found a lost item?') : (isRTL ? 'العثور على غرض مفقود' : 'Find lost item')}
                </Text>
@@ -192,35 +195,33 @@ export default function TripDetailsScreen({ route, navigation }: any) {
                  {isDriver ? (isRTL ? 'تواصل مع الراكب' : 'We can help you contact the passenger') : (isRTL ? 'يمكننا المساعدة في تواصلك مع السائق' : 'We can help you get in touch with your driver')}
                </Text>
             </View>
-            <ChevronRight color="#C0C0C0" size={20} style={isRTL ? { transform: [{ rotate: '180deg' }] } : {}} />
+            <ChevronRight color="#CBD5E1" size={18} style={isRTL ? { transform: [{ rotate: '180deg' }] } : {}} />
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.helpItem, isRTL && { flexDirection: 'row-reverse' }]} onPress={handleSafety} activeOpacity={0.7}>
-            <View style={styles.helpIconContainer}>
-               <Shield color="#111" size={20} />
+            <View style={[styles.helpIconWrap, { backgroundColor: '#FEF2F2' }]}>
+               <Shield color={COLORS.error} size={18} />
             </View>
-            <View style={[styles.helpTextContainer, isRTL && { alignItems: 'flex-end', paddingRight: 16 }]} >
+            <View style={[styles.helpTextContainer, isRTL && { alignItems: 'flex-end', paddingRight: 14, paddingLeft: 0 }]} >
                <Text style={[styles.helpItemTitle, isRTL && { textAlign: 'right' }]}>{isRTL ? 'الإبلاغ عن مشكلة أمان' : 'Report safety issue'}</Text>
                <Text style={[styles.helpItemSub, isRTL && { textAlign: 'right' }]}>{isRTL ? 'أبلغنا بأي مشاكل متعلقة بالأمان' : 'Report any safety related issues to us'}</Text>
             </View>
-            <ChevronRight color="#C0C0C0" size={20} style={isRTL ? { transform: [{ rotate: '180deg' }] } : {}} />
+            <ChevronRight color="#CBD5E1" size={18} style={isRTL ? { transform: [{ rotate: '180deg' }] } : {}} />
           </TouchableOpacity>
         </View>
 
         {/* Customer Support Button */}
         <TouchableOpacity style={[styles.supportBtn, isRTL && { flexDirection: 'row-reverse' }]} onPress={handleSupport} activeOpacity={0.8}>
-           <HelpCircle color="#111" size={20} style={isRTL ? { marginLeft: 12 } : { marginRight: 12 }} />
+           <HelpCircle color={COLORS.primary} size={18} style={isRTL ? { marginLeft: 12 } : { marginRight: 12 }} />
            <Text style={styles.supportBtnText}>{isRTL ? 'خدمة العملاء' : 'Customer Support'}</Text>
            <View style={{ flex: 1 }} />
-           <ArrowRight color="#111" size={20} style={isRTL ? { transform: [{ rotate: '180deg' }] } : {}} />
+           <ArrowRight color="#CBD5E1" size={18} style={isRTL ? { transform: [{ rotate: '180deg' }] } : {}} />
         </TouchableOpacity>
 
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-// Styles below
 
 const styles = StyleSheet.create({
   container: {
@@ -236,13 +237,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   backBtn: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '900',
-    color: '#111',
-    marginLeft: 16,
+    color: '#1C1C1E',
+    marginLeft: 14,
     letterSpacing: -0.5,
   },
   scrollView: {
@@ -251,8 +257,8 @@ const styles = StyleSheet.create({
   mapContainer: {
     width: '100%',
     height: 180,
-    backgroundColor: '#E5E7EB',
-    marginBottom: 16,
+    backgroundColor: '#E2E8F0',
+    marginBottom: 20,
   },
   mapImage: {
     width: '100%',
@@ -266,21 +272,22 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   tripTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: '900',
-    color: '#111',
-    lineHeight: 34,
+    color: '#1C1C1E',
+    lineHeight: 32,
     letterSpacing: -0.5,
   },
   avatarContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#F3F4F6',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#EBF4FF',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    ...SHADOWS.sm,
+    borderWidth: 2,
+    borderColor: '#BFDBFE',
   },
   avatar: {
     width: '100%',
@@ -291,15 +298,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dateTimeText: {
-    fontSize: 16,
-    color: '#4B5563',
+    fontSize: 14,
+    color: COLORS.onSurfaceVariant,
     marginBottom: 4,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   priceText: {
     fontSize: 18,
-    color: '#111',
-    fontWeight: '500',
+    color: '#1C1C1E',
+    fontWeight: '800',
   },
   receiptRow: {
     paddingHorizontal: 20,
@@ -309,15 +316,17 @@ const styles = StyleSheet.create({
   receiptBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    backgroundColor: '#EBF4FF',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
   },
   receiptBtnText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '700',
-    color: '#111',
+    color: COLORS.primary,
   },
   routeContainer: {
     paddingHorizontal: 20,
@@ -335,28 +344,25 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   routeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#111',
-    borderWidth: 1.5,
-    borderColor: '#111',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primary,
   },
   routeSquare: {
-    width: 8,
-    height: 8,
-    backgroundColor: '#fff',
-    borderWidth: 1.5,
-    borderColor: '#111',
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+    backgroundColor: '#F59E0B',
   },
   routeLine: {
-    width: 1.5,
-    backgroundColor: '#111',
+    width: 2,
+    backgroundColor: '#E2E8F0',
     marginLeft: 11,
   },
   routeLineRTL: {
-    width: 1.5,
-    backgroundColor: '#111',
+    width: 2,
+    backgroundColor: '#E2E8F0',
     marginRight: 11,
   },
   routeTextContainer: {
@@ -364,14 +370,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   routeAddress: {
-    fontSize: 15,
-    color: '#4B5563',
+    fontSize: 14,
+    color: '#475569',
     lineHeight: 22,
+    fontWeight: '500',
   },
   routeTime: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: 13,
+    color: COLORS.onSurfaceVariant,
     marginTop: 2,
+    fontWeight: '600',
   },
   actionRow: {
     flexDirection: 'row',
@@ -380,27 +388,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#F1F5F9',
   },
   actionLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+  },
+  actionIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   actionMainText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#111',
+    color: '#1C1C1E',
   },
   actionBtn: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   actionBtnText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#111',
+    color: '#1C1C1E',
   },
   helpSection: {
     paddingHorizontal: 20,
@@ -408,51 +426,55 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   sectionTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '900',
-    color: '#111',
+    color: '#1C1C1E',
     marginBottom: 20,
     letterSpacing: -0.5,
   },
   helpItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  helpIconContainer: {
-    width: 24,
-    height: 24,
+  helpIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
   helpTextContainer: {
     flex: 1,
-    paddingLeft: 16,
+    paddingLeft: 14,
   },
   helpItemTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#111',
-    marginBottom: 4,
+    color: '#1C1C1E',
+    marginBottom: 3,
   },
   helpItemSub: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
+    fontSize: 13,
+    color: COLORS.onSurfaceVariant,
+    lineHeight: 19,
+    fontWeight: '500',
   },
   supportBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F8FAFC',
     marginHorizontal: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     paddingVertical: 16,
     borderRadius: 16,
     marginBottom: 40,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   supportBtnText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#111',
+    color: '#1C1C1E',
   },
 });

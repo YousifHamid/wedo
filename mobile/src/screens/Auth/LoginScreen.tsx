@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Alert, ScrollView, Modal,
+  StyleSheet, Alert, ScrollView, Modal, Dimensions
 } from 'react-native';
 import useAuthStore from '../../store/useAuthStore';
 import api from '../../services/api';
 import { connectSocket } from '../../services/socket';
 import { validateDemoLogin, formatRemainingTime } from '../../services/demoGuard';
-import { Phone, Lock, LogIn, ChevronLeft, Clock, ShieldOff, Smartphone } from 'lucide-react-native';
+import { Phone, Lock, LogIn, ChevronLeft, Clock, ShieldOff, Smartphone, Eye, EyeOff, Mail } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { COLORS, SPACING, RADIUS, FONT_SIZES } from '../../constants/theme';
+import { COLORS, SPACING, RADIUS, FONT_SIZES, SHADOWS } from '../../constants/theme';
 
 // ─── Demo Block Modal ──────────────────────────────────────────────────────────
 type BlockReason = 'expired' | 'device_locked' | null;
@@ -58,16 +58,19 @@ export default function LoginScreen({ route, navigation }: any) {
   const isRTL = i18n.language === 'ar';
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const role = route.params?.role || 'rider';
   const { setUser, isServerEnabled, savedCredentials, saveCredentials } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [blockReason, setBlockReason] = useState<BlockReason>(null);
+  const [rememberMe, setRememberMe] = useState(!!savedCredentials);
 
-  // ✅ Auto-fill saved credentials on mount
+  // ✅ Auto-fill saved credentials on mount if remember me was active
   useEffect(() => {
     if (savedCredentials && savedCredentials.role === role) {
       setPhone(savedCredentials.phone);
       setPassword(savedCredentials.password);
+      setRememberMe(true);
     }
   }, []);
 
@@ -98,8 +101,8 @@ export default function LoginScreen({ route, navigation }: any) {
         } : undefined,
       };
       setUser(masterUser as any, 'master_token_permanent');
-      // ✅ Always save credentials
-      saveCredentials({ phone: phone.trim(), password: password.trim(), role: role as 'rider' | 'driver' });
+      // ✅ Save credentials only if Remember Me is checked
+      if (rememberMe) saveCredentials({ phone: phone.trim(), password: password.trim(), role: role as 'rider' | 'driver' });
       try { connectSocket(); } catch (e) {}
       setLoading(false);
       return;
@@ -145,8 +148,8 @@ export default function LoginScreen({ route, navigation }: any) {
           } : undefined,
         };
         setUser(mockUser as any, `mock_token_${account.id}_${role}`);
-        // ✅ Always save credentials
-        saveCredentials({ phone: phone.trim(), password: password.trim(), role: role as 'rider' | 'driver' });
+        // ✅ Save credentials only if Remember Me is checked
+        if (rememberMe) saveCredentials({ phone: phone.trim(), password: password.trim(), role: role as 'rider' | 'driver' });
         try { connectSocket(); } catch (e) {}
 
         Alert.alert(
@@ -169,8 +172,8 @@ export default function LoginScreen({ route, navigation }: any) {
         const response = await api.post('/auth/login', { phone, password, role });
         const { user, token } = response.data;
         setUser(user, token);
-        // ✅ Always save credentials after real server login
-        saveCredentials({ phone: phone.trim(), password: password.trim(), role: role as 'rider' | 'driver' });
+        // ✅ Save credentials only if Remember Me is checked
+        if (rememberMe) saveCredentials({ phone: phone.trim(), password: password.trim(), role: role as 'rider' | 'driver' });
         connectSocket();
       } catch (error: any) {
         const status = error.response?.status;
@@ -214,7 +217,7 @@ export default function LoginScreen({ route, navigation }: any) {
     <>
       <DemoBlockModal reason={blockReason} onClose={() => setBlockReason(null)} />
 
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView style={styles.container} contentContainerStyle={{ flexGrow: 1, minHeight: Dimensions.get('window').height }}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <ChevronLeft color="#FFFFFF" size={28} />
         </TouchableOpacity>
@@ -224,7 +227,7 @@ export default function LoginScreen({ route, navigation }: any) {
           <Text style={[styles.subtitle, isRTL && { textAlign: 'right' }]}>{t('login_subtitle')}</Text>
         </View>
 
-        <View style={styles.form}>
+        <View style={styles.formBox}>
           <View style={styles.inputGroup}>
             <Phone size={20} color="#374151" style={styles.inputIcon} />
             <TextInput
@@ -240,22 +243,29 @@ export default function LoginScreen({ route, navigation }: any) {
           <View style={[styles.inputGroup, { marginTop: SPACING.xl }]}>
             <Lock size={20} color="#374151" style={styles.inputIcon} />
             <TextInput
-              style={[styles.input, isRTL && styles.textRight]}
+              style={[styles.input, isRTL && styles.textRight, { flex: 1 }]}
               placeholder={t('password')}
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
+              secureTextEntry={!showPassword}
               placeholderTextColor="#9CA3AF"
             />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ paddingHorizontal: 10 }}>
+              {showPassword ? <EyeOff size={20} color="#9CA3AF" /> : <Eye size={20} color="#9CA3AF" />}
+            </TouchableOpacity>
           </View>
 
-          {/* Remember Me — always on, shown as info only */}
-          <View style={[styles.rememberContainer, isRTL && { flexDirection: 'row-reverse' }]}>
-            <View style={[styles.checkbox, styles.checkboxActive]}>
-              <LogIn size={12} color="#000" strokeWidth={3} />
+          {/* Remember Me — toggleable checkbox */}
+          <TouchableOpacity
+            style={[styles.rememberContainer, isRTL && { flexDirection: 'row-reverse' }]}
+            onPress={() => setRememberMe(prev => !prev)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
+              {rememberMe && <LogIn size={12} color="#FFF" strokeWidth={3} />}
             </View>
-            <Text style={styles.rememberText}>{isRTL ? 'حفظ بيانات الدخول دائماً ✔' : 'Login info always saved ✔'}</Text>
-          </View>
+            <Text style={styles.rememberText}>{isRTL ? 'تذكرني' : 'Remember Me'}</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.loginBtn, loading && { opacity: 0.7 }]}
@@ -263,7 +273,16 @@ export default function LoginScreen({ route, navigation }: any) {
             disabled={loading}
           >
             <Text style={styles.loginBtnText}>{loading ? '...' : t('login')}</Text>
-            {!loading && <LogIn color="#000000" size={20} style={[isRTL ? { marginRight: 10 } : { marginLeft: 10 }]} />}
+            {!loading && <LogIn color="#FFFFFF" size={20} style={[isRTL ? { marginRight: 10 } : { marginLeft: 10 }]} />}
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.loginBtn, { marginTop: SPACING.md }]}
+            activeOpacity={0.7}
+            onPress={() => Alert.alert(isRTL ? 'قريباً' : 'Coming Soon', isRTL ? 'ميزة الدخول عبر البريد ستتوفر قريباً' : 'Email login will be available soon')}
+          >
+            <Text style={styles.loginBtnText}>{isRTL ? 'أو التسجيل عبر الايميل' : 'Or Login via Email'}</Text>
+            <Mail color="#FFFFFF" size={24} style={isRTL ? { marginRight: 20 } : { marginLeft: 20 }} />
           </TouchableOpacity>
 
           <View style={[styles.footerContainer, isRTL && { flexDirection: 'row-reverse' }]}>
@@ -288,16 +307,27 @@ export default function LoginScreen({ route, navigation }: any) {
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1A1B1F', padding: SPACING['2xl'] },
-  backBtn: { marginTop: 50, marginBottom: SPACING['2xl'], width: 40, height: 40, justifyContent: 'center' },
-  header: { marginBottom: SPACING['3xl'] },
+  container: { flex: 1, backgroundColor: COLORS.primary },
+  backBtn: { marginTop: 50, marginBottom: SPACING['xl'], width: 40, height: 40, justifyContent: 'center', marginHorizontal: SPACING['2xl'] },
+  header: { marginBottom: SPACING['xl'], paddingHorizontal: SPACING['2xl'] },
   title: { fontSize: 36, fontWeight: '900', color: '#FFFFFF', letterSpacing: -1 },
-  subtitle: { fontSize: 16, color: '#9CA3AF', marginTop: SPACING.sm },
+  subtitle: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginTop: SPACING.sm },
   textRight: { textAlign: 'right' },
-  form: { marginTop: SPACING.md },
+  formBox: { 
+    flex: 1, 
+    backgroundColor: '#FFFFFF', 
+    borderTopLeftRadius: 0, 
+    borderTopRightRadius: 0,
+    padding: SPACING['2xl'], 
+    paddingTop: 45,
+    paddingBottom: 60, // Moved padding inside the white box to hide blue backgrounds
+    marginTop: 40, 
+    ...SHADOWS.lg,
+    zIndex: 20
+  },
   inputGroup: { 
     flexDirection: 'row', alignItems: 'center', 
-    backgroundColor: '#FFFFFF', 
+    backgroundColor: '#F9FAFB', 
     paddingHorizontal: SPACING.xl, 
     borderRadius: RADIUS.lg,
     borderWidth: 1,
@@ -306,11 +336,11 @@ const styles = StyleSheet.create({
   inputIcon: { marginRight: SPACING.md },
   input: { flex: 1, paddingVertical: 18, fontSize: 16, color: '#000000', fontWeight: '700' },
   rememberContainer: { flexDirection: 'row', alignItems: 'center', marginTop: 20, paddingHorizontal: 4 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#4B5563', justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' },
-  checkboxActive: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' },
-  rememberText: { color: '#E5E7EB', fontSize: 15, fontWeight: '600', paddingHorizontal: 12 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#D1D5DB', justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' },
+  checkboxActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  rememberText: { color: '#4B5563', fontSize: 15, fontWeight: '600', paddingHorizontal: 12 },
   loginBtn: { 
-    backgroundColor: '#FFFFFF', 
+    backgroundColor: COLORS.primary, 
     padding: 20, 
     borderRadius: RADIUS.full, 
     alignItems: 'center', 
@@ -318,10 +348,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     marginTop: 40 
   },
-  loginBtnText: { color: '#000000', fontSize: 18, fontWeight: '800' },
+  loginBtnText: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
   footerContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: SPACING['2xl'] },
-  footerText: { color: '#9CA3AF', fontSize: 15 },
-  footerLink: { color: COLORS.primary, fontWeight: '800', fontSize: 15 },
+  footerText: { color: '#6B7280', fontSize: 15 },
+  footerLink: { color: COLORS.primary, fontWeight: '900', fontSize: 15 },
 });
 
 const modal = StyleSheet.create({
@@ -345,4 +375,36 @@ const modal = StyleSheet.create({
     shadowColor: '#FFF', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 5
   },
   btnText: { color: '#000000', fontWeight: '900', fontSize: 16 },
+  emailBtn: {
+    backgroundColor: '#F9FAFB', 
+    padding: 20, 
+    borderRadius: RADIUS.full, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    flexDirection: 'row', 
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginTop: SPACING.lg,
+  },
+  emailBtnText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111111', 
+  },
+  dividerBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: SPACING['xl'],
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  dividerText: {
+    paddingHorizontal: SPACING.md,
+    color: '#9CA3AF',
+    fontSize: FONT_SIZES.sm,
+    fontWeight: '600',
+  },
 });

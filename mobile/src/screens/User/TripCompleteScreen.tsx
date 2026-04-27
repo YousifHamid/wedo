@@ -69,17 +69,17 @@ export default function TripCompleteScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Green gradient header */}
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.headerBackBtn} 
           onPress={() => { resetTrip(); navigation.navigate('UserHome'); }}
           activeOpacity={0.85}
         >
-          <ChevronLeft color="rgba(255,255,255,0.85)" size={26} />
+          <ChevronLeft color="#fff" size={22} />
         </TouchableOpacity>
         <Animated.View style={[styles.successCircle, { transform: [{ scale: checkScale }] }]}>
-          <CheckCircle color="#fff" size={44} />
+          <CheckCircle color="#fff" size={36} />
         </Animated.View>
         <Text style={styles.headerTitle}>{isRTL ? 'اكتملت الرحلة!' : 'Trip Completed!'}</Text>
         <Text style={styles.headerSub}>{isRTL ? 'وصلت بأمان. شكراً لاستخدامك ودّو' : 'You arrived safely. Thanks for using Wedo'}</Text>
@@ -90,10 +90,10 @@ export default function TripCompleteScreen({ navigation }: any) {
 
           {/* Fare Card */}
           <View style={styles.fareCard}>
-            <View style={styles.fareHeader}>
+            <View style={[styles.fareHeader, isRTL && { flexDirection: 'row-reverse' }]}>
               <Text style={styles.fareLabelText}>{isRTL ? 'إجمالي الأجرة' : 'Total Fare'}</Text>
               <View style={styles.cashBadge}>
-                <Banknote color="#ef4444" size={14} />
+                <Banknote color={COLORS.error} size={14} />
                 <Text style={styles.cashText}>{isRTL ? 'نقدي' : 'Cash'}</Text>
               </View>
             </View>
@@ -103,19 +103,19 @@ export default function TripCompleteScreen({ navigation }: any) {
           {/* Route Summary */}
           <View style={styles.routeCard}>
             <View style={[styles.routeRow, isRTL && { flexDirection: 'row-reverse' }]}>
-              <View style={styles.routeIndicator}>
+              <View style={[styles.routeIndicator, isRTL && { marginRight: 0, marginLeft: 14 }]}>
                 <View style={[styles.routeDot, { backgroundColor: COLORS.primary }]} />
                 <View style={styles.routeLineVertical} />
-                <View style={[styles.routeDot, { backgroundColor: '#f59e0b' }]} />
+                <View style={[styles.routeDot, { backgroundColor: '#F59E0B' }]} />
               </View>
               <View style={[styles.routeTexts, isRTL && { alignItems: 'flex-end' }]}>
                 <View style={styles.routeSection}>
-                  <Text style={styles.routeLabel}>{isRTL ? 'من' : 'From'}</Text>
-                  <Text style={[styles.routeZone, isRTL && { textAlign: 'right' }]}>{getZoneLabel(pickupZone)}</Text>
+                  <Text style={[styles.routeLabel, isRTL && { textAlign: 'right' }]}>{isRTL ? 'من' : 'From'}</Text>
+                  <Text style={[styles.routeZone, isRTL && { textAlign: 'right' }]}>{getZoneLabel(pickupZone) || (isRTL ? 'نقطة البداية' : 'Pickup')}</Text>
                 </View>
-                <View style={[styles.routeSection, { marginTop: 12 }]}>
-                  <Text style={styles.routeLabel}>{isRTL ? 'إلى' : 'To'}</Text>
-                  <Text style={[styles.routeZone, isRTL && { textAlign: 'right' }]}>{getZoneLabel(dropoffZone)}</Text>
+                <View style={[styles.routeSection, { marginTop: 14 }]}>
+                  <Text style={[styles.routeLabel, isRTL && { textAlign: 'right' }]}>{isRTL ? 'إلى' : 'To'}</Text>
+                  <Text style={[styles.routeZone, isRTL && { textAlign: 'right' }]}>{getZoneLabel(dropoffZone) || (isRTL ? 'الوجهة' : 'Destination')}</Text>
                 </View>
               </View>
             </View>
@@ -133,15 +133,17 @@ export default function TripCompleteScreen({ navigation }: any) {
               {[1, 2, 3, 4, 5].map((star) => (
                 <TouchableOpacity key={star} onPress={() => setRating(star)} style={styles.starBtn} activeOpacity={0.7}>
                   <Star
-                    color={star <= rating ? '#f59e0b' : '#d1d5db'}
-                    fill={star <= rating ? '#f59e0b' : 'transparent'}
-                    size={40}
+                    color={star <= rating ? '#F59E0B' : '#E2E8F0'}
+                    fill={star <= rating ? '#F59E0B' : 'transparent'}
+                    size={38}
                   />
                 </TouchableOpacity>
               ))}
             </View>
             {rating > 0 && (
-              <Text style={styles.ratingFeedback}>{getRatingText()}</Text>
+              <View style={styles.ratingFeedbackPill}>
+                <Text style={styles.ratingFeedback}>{getRatingText()}</Text>
+              </View>
             )}
           </View>
 
@@ -152,7 +154,7 @@ export default function TripCompleteScreen({ navigation }: any) {
             ) : (
               <View style={[styles.doneBtnInner, isRTL && { flexDirection: 'row-reverse' }]}>
                 <Text style={styles.doneBtnText}>{isRTL ? 'إنهاء الرحلة' : 'Done'}</Text>
-                <ArrowRight color="#fff" size={20} style={isRTL ? { transform: [{ rotate: '180deg' }] } : {}} />
+                <ArrowRight color="#fff" size={18} style={isRTL ? { transform: [{ rotate: '180deg' }] } : {}} />
               </View>
             )}
           </TouchableOpacity>
@@ -177,16 +179,17 @@ export default function TripCompleteScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8faf5' },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
   
   // Header
   header: {
     backgroundColor: COLORS.primary,
     paddingTop: 50,
-    paddingBottom: 30,
+    paddingBottom: 32,
     alignItems: 'center',
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    ...SHADOWS.lg,
   },
   headerBackBtn: {
     position: 'absolute',
@@ -200,16 +203,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   successCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
-  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff', marginBottom: 4 },
-  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.85)' },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#fff',
+    marginBottom: 6,
+    letterSpacing: -0.3,
+  },
+  headerSub: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '500',
+  },
 
   // Body
   body: { flex: 1 },
@@ -221,15 +234,46 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 24,
     alignItems: 'center',
-    marginTop: -20,
+    marginTop: -24,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     ...SHADOWS.md,
   },
-  fareHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%', marginBottom: 8 },
-  fareLabelText: { fontSize: 13, color: '#9ca3af' },
-  fareAmount: { fontSize: 36, fontWeight: '900', color: COLORS.onSurface, letterSpacing: -1 },
-  cashBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fef2f2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  cashText: { fontSize: 11, fontWeight: '700', color: '#ef4444', marginLeft: 4 },
+  fareHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 10,
+  },
+  fareLabelText: {
+    fontSize: 13,
+    color: COLORS.onSurfaceVariant,
+    fontWeight: '600',
+  },
+  fareAmount: {
+    fontSize: 36,
+    fontWeight: '900',
+    color: '#1C1C1E',
+    letterSpacing: -1,
+  },
+  cashBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  cashText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.error,
+  },
 
   // Route Card
   routeCard: {
@@ -237,31 +281,75 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     ...SHADOWS.sm,
   },
   routeRow: { flexDirection: 'row', alignItems: 'stretch' },
-  routeIndicator: { alignItems: 'center', marginRight: 16, paddingVertical: 2 },
-  routeDot: { width: 12, height: 12, borderRadius: 6 },
-  routeLineVertical: { width: 2, flex: 1, backgroundColor: '#e5e7eb', marginVertical: 4 },
+  routeIndicator: { alignItems: 'center', marginRight: 14, paddingVertical: 2 },
+  routeDot: { width: 10, height: 10, borderRadius: 5 },
+  routeLineVertical: { width: 2, flex: 1, backgroundColor: '#E2E8F0', marginVertical: 4 },
   routeTexts: { flex: 1, justifyContent: 'space-between' },
   routeSection: {},
-  routeLabel: { fontSize: 11, color: '#9ca3af', marginBottom: 2 },
-  routeZone: { fontSize: 15, fontWeight: '700', color: COLORS.onSurface },
+  routeLabel: {
+    fontSize: 11,
+    color: COLORS.onSurfaceVariant,
+    marginBottom: 3,
+    fontWeight: '600',
+  },
+  routeZone: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1C1C1E',
+  },
 
   // Rating Card
   ratingCard: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 20,
+    padding: 24,
     marginBottom: 20,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     ...SHADOWS.sm,
   },
-  rateLabel: { fontSize: 18, fontWeight: 'bold', color: COLORS.onSurface, marginBottom: 4, width: '100%' },
-  rateSub: { fontSize: 12, color: '#9ca3af', marginBottom: 16, width: '100%' },
-  starsRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 8 },
-  starBtn: { paddingHorizontal: 6 },
-  ratingFeedback: { fontSize: 13, color: COLORS.primary, fontWeight: '600', marginTop: 8 },
+  rateLabel: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1C1C1E',
+    marginBottom: 4,
+    width: '100%',
+    letterSpacing: -0.3,
+  },
+  rateSub: {
+    fontSize: 13,
+    color: COLORS.onSurfaceVariant,
+    marginBottom: 18,
+    width: '100%',
+    fontWeight: '500',
+  },
+  starsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 4,
+    marginBottom: 8,
+  },
+  starBtn: { paddingHorizontal: 4 },
+  ratingFeedbackPill: {
+    backgroundColor: '#EBF4FF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  ratingFeedback: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
 
   // Done Button
   doneBtn: {
@@ -273,13 +361,55 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     ...SHADOWS.md,
   },
-  doneBtnInner: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  doneBtnText: { fontSize: 17, fontWeight: 'bold', color: '#fff' },
+  doneBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  doneBtnText: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#fff',
+  },
 
   // Store Card
-  storeCard: { backgroundColor: '#fff', borderRadius: 16, padding: 20, alignItems: 'center', ...SHADOWS.sm },
-  thankYouTitle: { fontSize: 14, fontWeight: 'bold', color: COLORS.onSurface, textAlign: 'center', marginBottom: 4 },
-  thankYouSub: { fontSize: 11, color: '#9ca3af', textAlign: 'center', marginBottom: 12 },
-  storeBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 30, borderWidth: 1, borderColor: '#dcfce7' },
-  storeBtnText: { fontSize: 12, fontWeight: '700', color: COLORS.primary, marginLeft: 8 },
+  storeCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    ...SHADOWS.sm,
+  },
+  thankYouTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1C1C1E',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  thankYouSub: {
+    fontSize: 12,
+    color: COLORS.onSurfaceVariant,
+    textAlign: 'center',
+    marginBottom: 16,
+    fontWeight: '500',
+  },
+  storeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EBF4FF',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 30,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  storeBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
 });

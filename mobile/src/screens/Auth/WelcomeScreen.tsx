@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image, Animated } from 'react-native';
 import { Car, UserCheck, ChevronRight, ChevronLeft, Languages, MapPin, ShieldCheck, Route, Navigation } from 'lucide-react-native';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -33,7 +34,7 @@ export default function WelcomeScreen({ navigation }: any) {
     <View style={styles.container}>
       <StatusBar style="light" translucent backgroundColor="transparent" />
 
-      {/* Top Half: Dark Luxury Cover Image */}
+      {/* Top Half: Blue Background (with optional subtle image) */}
       <View style={styles.imageContainer}>
          <Image 
             source={{ uri: 'file:///C:/Users/MANDO/.gemini/antigravity/brain/b0561f02-72ee-4ff7-803b-70eef60a7f3d/media__1776260257553.jpg' }} 
@@ -58,10 +59,23 @@ export default function WelcomeScreen({ navigation }: any) {
             style={{ width: '100%', height: '100%', opacity: 1 }} 
             resizeMode="cover"
          />
+         {/* SVG Gradient Fade for seamless top boundary! */}
+         <View style={{ position: 'absolute', top: -1, left: 0, right: 0, height: 160 }}>
+            <Svg height="100%" width="100%">
+              <Defs>
+                <LinearGradient id="topFade" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor={COLORS.primary} stopOpacity="1" />
+                  <Stop offset="0.3" stopColor={COLORS.primary} stopOpacity="0.8" />
+                  <Stop offset="1" stopColor={COLORS.primary} stopOpacity="0" />
+                </LinearGradient>
+              </Defs>
+              <Rect width="100%" height="100%" fill="url(#topFade)" />
+            </Svg>
+         </View>
       </View>
 
-      {/* Bottom Half: Premium Text & Buttons */}
-      <View style={[styles.contentContainer, { paddingBottom: Math.max(insets.bottom, 16) + 20 }]}>
+      {/* Bottom Half: Premium Text & Buttons in a White Box */}
+      <View style={[styles.bottomSheetBox, { paddingBottom: Math.max(insets.bottom, 16) + 20 }]}>
          <Text style={[styles.title, isRTL && styles.textRight]}>{t('premium_cars')}</Text>
          <Text style={[styles.subtitle, isRTL && styles.textRight]}>
             {t('premium_desc')}
@@ -92,21 +106,23 @@ export default function WelcomeScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1A1B1F' },
+  container: { flex: 1, backgroundColor: COLORS.primary },
   
   imageContainer: {
     width: '100%',
-    height: '60%', 
+    height: '100%',
     position: 'absolute',
     top: 0,
   },
   coverImage: {
     width: '100%',
     height: '100%',
+    opacity: 0.15, // Barely visible texturized background
   },
   imageOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(26, 27, 31, 0.4)', // Fades the image slightly to blend
+    backgroundColor: COLORS.primary, // Strong solid blue matching the brand
+    opacity: 0.9,
   },
   
   topNav: { 
@@ -122,48 +138,38 @@ const styles = StyleSheet.create({
   },
   langBtn: { 
     backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 18, paddingVertical: 10, 
-    borderRadius: RADIUS.full 
+    borderRadius: RADIUS.full, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
   langBtnText: { fontWeight: '900', color: '#FFFFFF', fontSize: FONT_SIZES.sm },
   
   midDecorationContainer: {
     position: 'absolute',
-    top: '18%', 
+    top: '-3%', // Lowered slightly so the sky appears underneath the Wedo logo
     left: 0,
     right: 0,
-    height: '30%', // Reduced highly to keep away from bottom text
+    height: '65%', 
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
     zIndex: 5,
-    borderRadius: 32, // Creating the requested curved/canvas edges
   },
-  roadLine: {
+  
+  bottomSheetBox: {
     position: 'absolute',
-    width: 2,
-    backgroundColor: '#FFFFFF',
-    opacity: 0.08,
-    borderRadius: 1,
-  },
-  dashedRoute: {
-    position: 'absolute',
-    width: 1,
-    borderLeftWidth: 3,
-    borderColor: '#FFFFFF',
-    borderStyle: 'dashed',
-    opacity: 0.4,
-  },
-
-  contentContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
+    bottom: 0, left: 0, right: 0,
     paddingHorizontal: 24,
+    paddingTop: 45,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 0, // Removed rounding to extend fully edge-to-edge
+    borderTopRightRadius: 0,
+    zIndex: 20, 
+    ...SHADOWS.lg,
   },
   
   title: {
     fontSize: 40,
     fontWeight: '900',
-    color: '#FFFFFF',
+    color: '#111111',
     lineHeight: 46,
     letterSpacing: -1,
     marginBottom: SPACING.lg,
@@ -181,14 +187,14 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   primaryButton: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.primary,
     width: '100%',
     borderRadius: RADIUS.full,
     paddingVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomWidth: 6,
-    borderBottomColor: '#D1D5DB', // Authentic 3D Pop
+    borderBottomColor: COLORS.primaryContainer, // Authentic 3D Pop
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -197,24 +203,24 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     fontSize: FONT_SIZES.lg,
-    fontWeight: '800',
-    color: '#000000',
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
   secondaryButton: {
-    backgroundColor: '#1C1C1E',
+    backgroundColor: COLORS.primary,
     width: '100%',
     borderRadius: RADIUS.full,
     paddingVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomWidth: 6,
-    borderBottomColor: '#000000', // 3D Dark Pop
+    borderBottomColor: COLORS.primaryContainer, // 3D Blue Pop
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   secondaryButtonText: {
     fontSize: FONT_SIZES.lg,
-    fontWeight: '800',
+    fontWeight: '900',
     color: '#FFFFFF',
   },
 });

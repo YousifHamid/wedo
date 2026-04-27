@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const { width, height } = Dimensions.get('window');
 
 import { SafeMapView as MapView, SafeMarker as Marker, SafePolyline as Polyline } from '../../components/MapViewMock';
-import { DARK_MAP_STYLE } from '../../constants/mapStyle';
+import { SILVER_MAP_STYLE } from '../../constants/mapStyle';
 import InteractiveMapMock from '../../components/InteractiveMapMock';
 import SwipeableBottomSheet from '../../components/SwipeableBottomSheet';
 
@@ -258,7 +258,7 @@ export default function UserHomeScreen({ navigation }: any) {
         <View style={styles.mapContainer}>
           <MapView
             style={StyleSheet.absoluteFill}
-            customMapStyle={DARK_MAP_STYLE}
+            customMapStyle={SILVER_MAP_STYLE}
             initialRegion={{ latitude: 15.5007, longitude: 32.5599, latitudeDelta: 0.1, longitudeDelta: 0.1 }}
             onRegionChangeComplete={(region: any) => {
                setLocation({ latitude: region.latitude, longitude: region.longitude });
@@ -294,14 +294,8 @@ export default function UserHomeScreen({ navigation }: any) {
       { id: 'd5', top: '65%', left: '70%', rot: '120deg' },
     ];
     return (
-      <View style={styles.mapContainer}>
-        {/* Background Image (Scenic Traffic View) */}
-        <Image 
-           source={{ uri: 'https://images.unsplash.com/photo-1515166099120-d125dbb2c9fc?q=80&w=1470&auto=format&fit=crop' }}
-           style={StyleSheet.absoluteFill}
-           resizeMode="cover"
-        />
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.25)' }]} />
+      <View style={[styles.mapContainer, { backgroundColor: COLORS.primary }]}>
+        {/* Solid Primary Blue Background per UX request - Removed Scenic Image */}
 
         {/* Transparent Interactive Map Handler */}
         <InteractiveMapMock
@@ -320,19 +314,11 @@ export default function UserHomeScreen({ navigation }: any) {
 
   const renderLuxuryDashboard = () => {
     return (
-      <View style={[styles.container, { backgroundColor: '#181A1F' }]}>
-         <Image 
-           source={{ uri: 'https://images.unsplash.com/photo-1682687982501-1e58f813f22b?q=80&w=1470&auto=format&fit=crop' }} 
-           style={StyleSheet.absoluteFill}
-           resizeMode="cover"
-         />
-         <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
+      <View style={[styles.container, { backgroundColor: COLORS.primary }]}>
+         {/* Solid Blue Background */}
          <View style={[styles.luxuryHeader, { paddingTop: Math.max(insets.top, 20) }, isRTL && { flexDirection: 'row-reverse' }]}>
              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Image
-                  source={require('../../../assets/logo.png')}
-                  style={{ width: 80, height: 36, resizeMode: 'contain' }}
-                />
+                <Text style={styles.brandWordmark}>Wedo</Text>
              </View>
             <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.luxuryAvatarBtn}>
                <User color="#FFF" size={20} />
@@ -497,7 +483,7 @@ export default function UserHomeScreen({ navigation }: any) {
 
                    {/* Suggestions — appear inside the search card as a dropdown */}
                    {showSuggestions && destination.length > 0 && filteredZones.length > 0 && (
-                     <View style={styles.inlineSuggestionsWrapper}>
+                     <ScrollView style={[styles.inlineSuggestionsWrapper, { maxHeight: 180 }]} nestedScrollEnabled={true}>
                        {filteredZones.slice(0, 6).map((zone) => (
                          <TouchableOpacity
                            key={zone._id}
@@ -514,7 +500,7 @@ export default function UserHomeScreen({ navigation }: any) {
                            </View>
                          </TouchableOpacity>
                        ))}
-                     </View>
+                     </ScrollView>
                    )}
                 </View>
              </View>
@@ -567,7 +553,7 @@ export default function UserHomeScreen({ navigation }: any) {
                        </View>
                        <Text style={[styles.mockupMainPriceCompact, vehicleType === 'premium' && { color: '#FFF' }, { marginTop: 8 }]}>
                           {(vehicleType === 'premium' ? premiumFare : standardFare).toLocaleString()}
-                          <Text style={[styles.mockupMainPriceSub, vehicleType === 'premium' && { color: '#9CA3AF' }]}> {isRTL ? 'SDG' : 'sdg'}</Text>
+                          <Text style={[styles.mockupMainPriceSub, vehicleType === 'premium' && { color: '#9CA3AF' }]}> ج.س</Text>
                        </Text>
                     </View>
                  </View>
@@ -584,7 +570,7 @@ export default function UserHomeScreen({ navigation }: any) {
                       {isRTL ? 'عادي' : 'Standard'}
                     </Text>
                     <Text style={[styles.vehicleTypeBtnPrice, vehicleType !== 'premium' && { color: '#333' }]}>
-                      {standardFare.toLocaleString()} SDG
+                      {standardFare.toLocaleString()} ج.س
                     </Text>
                   </TouchableOpacity>
 
@@ -597,7 +583,7 @@ export default function UserHomeScreen({ navigation }: any) {
                       {isRTL ? 'مميز' : 'Premium'}
                     </Text>
                     <Text style={[styles.vehicleTypeBtnPrice, vehicleType === 'premium' && { color: '#D1FAE5' }]}>
-                      {premiumFare.toLocaleString()} SDG
+                      {premiumFare.toLocaleString()} ج.س
                     </Text>
                   </TouchableOpacity>
                </View>
@@ -649,7 +635,7 @@ const styles = StyleSheet.create({
   langPill: { backgroundColor: '#1A1B1F', paddingHorizontal: 16, height: 48, borderRadius: 24, justifyContent: 'center', alignItems: 'center', ...SHADOWS.sm },
   langPillText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
   
-  brandContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#000000', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 24, ...SHADOWS.sm },
+  brandContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primary, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 24, ...SHADOWS.sm },
   brandLogo: { width: 34, height: 34, resizeMode: 'contain', borderRadius: 6 },
   brandWordmark: { fontSize: 20, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.5 },
   brandTitle: { fontSize: 18, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.5, marginLeft: 8 },
@@ -669,7 +655,7 @@ const styles = StyleSheet.create({
   bookNowPill: { 
     alignItems: 'center', 
     justifyContent: 'center', 
-    backgroundColor: '#000000', 
+    backgroundColor: COLORS.primary, 
     borderRadius: 50, 
     paddingVertical: 18, 
     paddingHorizontal: 24, 
@@ -810,14 +796,14 @@ const styles = StyleSheet.create({
     fontSize: 14, color: COLORS.onSurfaceVariant, fontWeight: '600'
   },
   bookBtnBlack: {
-    backgroundColor: '#000000', paddingHorizontal: 24, paddingVertical: 12, borderRadius: RADIUS.full, ...SHADOWS.sm
+    backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: RADIUS.full, ...SHADOWS.sm
   },
   bookBtnText: {
     color: '#FFFFFF', fontSize: 16, fontWeight: '800'
   },
 
   confirmPinFloating: { position: 'absolute', left: 24, right: 24, zIndex: 25 },
-  confirmMapBtn: { backgroundColor: '#1C1C1E', padding: 18, borderRadius: 20, alignItems: 'center', ...SHADOWS.xl, borderWidth: 1, borderColor: '#374151' },
+  confirmMapBtn: { backgroundColor: COLORS.primary, padding: 18, borderRadius: 20, alignItems: 'center', ...SHADOWS.xl, borderWidth: 1, borderColor: COLORS.primaryContainer },
   confirmMapBtnText: { color: '#FFF', fontSize: 16, fontWeight: '900' },
   
   // Extracted styles from map core
@@ -870,11 +856,11 @@ const styles = StyleSheet.create({
   mockupArrowBtn: { justifyContent: 'center', alignItems: 'center' },
   mockupDivider: { height: 1, backgroundColor: '#333', marginVertical: 16 },
   mockupBookBtn: { 
-    backgroundColor: '#1C1C1E', paddingVertical: 18, paddingHorizontal: 24, 
+    backgroundColor: COLORS.primary, paddingVertical: 18, paddingHorizontal: 24, 
     borderRadius: 18, alignItems: 'center', marginTop: 16,
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 6,
   },
-  mockupBookBtnText: { color: '#FFFFFF', fontSize: 17, fontWeight: '900', letterSpacing: -0.3 },
+  mockupBookBtnText: { color: '#FFFFFF', fontSize: 18, fontWeight: '900', letterSpacing: -0.3 },
 
   // Vehicle Type Selector (Standard / Premium)
   vehicleTypeRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
@@ -887,7 +873,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FFF4', borderColor: '#10B981',
   },
   vehicleTypeBtnActivePremium: { 
-    backgroundColor: '#1C1C1E', borderColor: '#555',
+    backgroundColor: COLORS.primary, borderColor: COLORS.primaryContainer,
   },
   vehicleTypeBtnIcon: { fontSize: 22, marginBottom: 4 },
   vehicleTypeBtnLabel: { fontSize: 15, fontWeight: '700', color: '#6B7280' },
@@ -909,7 +895,7 @@ const styles = StyleSheet.create({
   enhancedDropoffText: { fontSize: 16, color: '#000000', fontWeight: '800' },
   
   // Mockup Main Card Enhancements
-  mockupMainCardPremium: { backgroundColor: '#1C1C1E', borderColor: '#333' },
+  mockupMainCardPremium: { backgroundColor: COLORS.primary, borderColor: COLORS.primaryContainer },
   mockupHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: -10 },
   etaBadge: { backgroundColor: '#F3F4F6', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, flexDirection: 'row', alignItems: 'center' },
   etaBadgeText: { fontSize: 12, fontWeight: '800', color: '#111' },
@@ -928,14 +914,14 @@ const styles = StyleSheet.create({
   peekBookingBar: { flexDirection: 'column', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#F3F4F6' },
   peekCarInfo: { flex: 1, flexDirection: 'column', gap: 2 },
   peekCarName: { fontSize: 16, fontWeight: '900', color: '#111', flex: 1 },
-  peekCarPrice: { fontSize: 15, fontWeight: '800', color: '#1C1C1E' },
-  peekBookBtn: { backgroundColor: '#1C1C1E', paddingVertical: 14, borderRadius: 14, alignItems: 'center', width: '100%' },
+  peekCarPrice: { fontSize: 15, fontWeight: '800', color: COLORS.primary },
+  peekBookBtn: { backgroundColor: COLORS.primary, paddingVertical: 14, borderRadius: 14, alignItems: 'center', width: '100%' },
   peekBookBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900' },
 
   // Peek top row: car name + price side by side
   peekTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: 10 },
 
   // "Change Destination" back pill below the route card
-  clearDestBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', backgroundColor: '#1C1C1E', paddingVertical: 7, paddingHorizontal: 14, borderRadius: 20, marginTop: 8, gap: 6 },
+  clearDestBtn: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', backgroundColor: COLORS.primary, paddingVertical: 7, paddingHorizontal: 14, borderRadius: 20, marginTop: 8, gap: 6 },
   clearDestBtnText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
 });

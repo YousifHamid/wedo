@@ -119,17 +119,7 @@ export default function CustomAlert({
             </TouchableOpacity>
           )}
 
-          {/* Icon area */}
-          <View style={[styles.iconWrapper, { backgroundColor: config.bg }]}>
-            {emoji ? (
-              <Text style={styles.emojiText}>{emoji}</Text>
-            ) : (
-              <config.Icon size={36} color={config.color} strokeWidth={2} />
-            )}
-          </View>
-
-          {/* Accent line */}
-          <View style={[styles.accentLine, { backgroundColor: config.color }]} />
+          {/* Icon area removed entirely per user request for clean alert design */}
 
           {/* Text */}
           <Text style={styles.title}>{title}</Text>

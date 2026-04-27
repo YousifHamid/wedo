@@ -315,35 +315,31 @@ export default function DriverHomeScreen({ navigation }: any) {
         <MapView style={{ flex: 1 }}>
           {isOnline && !activeTrip && nearbyCarPositions.map(car => (
             <View key={car.id} style={[styles.mockCarOverlay, { top: car.top as any, left: car.left as any }]}>
-              <View style={[styles.driverMarker, { transform: [{ rotate: car.rot }], backgroundColor: '#555', width: 28, height: 28, borderRadius: 14 }]}>
+              <View style={[styles.driverMarker, { transform: [{ rotate: car.rot }], backgroundColor: '#475569', width: 28, height: 28, borderRadius: 14 }]}>
                 <Car color="#fff" size={12} />
               </View>
             </View>
           ))}
-          {/* Driver Active Trip Nav View (Uber Style) */}
+          {/* Driver Active Trip Nav View */}
           {activeTrip && (
             <>
-              {/* Simulate Turn-by-Turn Route */}
               <Polyline strokeColor={COLORS.primary} strokeWidth={6} lineDashPattern={undefined} />
               
-              {/* Destination Point */}
               <Marker style={{ top: 120, left: 280 }}>
                 <View style={styles.destinationBox}>
-                  <MapPin color="#fff" size={14} />
+                  <MapPin color="#fff" size={12} />
                 </View>
               </Marker>
 
-              {/* Navigation Car Position */}
               <Marker style={{ top: 280, left: 160 }}>
                 <View style={styles.navCarRing}>
                   <View style={styles.navCarDot} />
                 </View>
               </Marker>
 
-              {/* Uber Nav Header Overlay */}
               <View style={styles.navOverlayHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Navigation color="#fff" size={24} style={{ transform: [{rotate: '45deg'}], marginRight: 16 }} />
+                  <Navigation color={COLORS.primary} size={22} style={{ transform: [{rotate: '45deg'}], marginRight: 14 }} />
                   <View>
                     <Text style={styles.navDistance}>1.5 km</Text>
                     <Text style={styles.navRoadName}>E Main St</Text>
@@ -369,24 +365,28 @@ export default function DriverHomeScreen({ navigation }: any) {
     <View style={styles.container}>
       {renderMap()}
 
+      {/* Top Bar */}
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Profile')}><Menu color="#FFFFFF" size={24} /></TouchableOpacity>
-        <View style={[styles.statusBadge, isOnline && { backgroundColor: '#10B981', borderColor: '#059669' }]}>
-          <View style={[styles.statusDot, { backgroundColor: isOnline ? '#FFF' : '#000' }]} />
-          <Text style={[styles.statusText, isOnline && { color: '#FFF' }]}>{isOnline ? t('online') : t('offline')}</Text>
+        <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.navigate('Profile')}>
+          <Menu color="#1C1C1E" size={20} />
+        </TouchableOpacity>
+        <View style={[styles.statusBadge, isOnline && styles.statusBadgeOnline]}>
+          <View style={[styles.statusDot, { backgroundColor: isOnline ? COLORS.success : '#94A3B8' }]} />
+          <Text style={[styles.statusText, isOnline && styles.statusTextOnline]}>{isOnline ? t('online') : t('offline')}</Text>
         </View>
         <View style={styles.wedoBrandPill}>
           <Text style={styles.wedoBrandText}>Wedo</Text>
         </View>
       </View>
 
+      {/* Demand Map Legend */}
       {showDemandMap && (
         <View style={styles.demandLegend}>
           <View style={styles.rowBetween}>
             <Text style={styles.legendTitle}>{isRTL ? 'نطاق العمل واستقبال الطلبات' : 'Work & Request Radius'}</Text>
             <Text style={styles.legendRadius}>{demandRadius} km</Text>
           </View>
-          <View style={[styles.radiusBar, { marginTop: 10 }]}>
+          <View style={[styles.radiusBar, { marginTop: 12 }]}>
             {[1, 2, 3, 5, 7].map(r => (
               <TouchableOpacity key={r} onPress={() => setDemandRadius(r)} style={[styles.radiusStep, demandRadius === r && styles.radiusStepActive]}>
                 <Text style={[styles.radiusText, demandRadius === r && styles.radiusTextActive]}>{r}</Text>
@@ -396,10 +396,21 @@ export default function DriverHomeScreen({ navigation }: any) {
         </View>
       )}
 
+      {/* FAB Buttons */}
       {!activeTrip && (
         <View style={styles.fabContainer}>
-          <TouchableOpacity style={[styles.fab, showDemandMap && { backgroundColor: '#000' }]} onPress={() => setShowDemandMap(!showDemandMap)}><TrendingUp size={24} color="#FFFFFF" /></TouchableOpacity>
-          <TouchableOpacity style={[styles.fab, isOnline && { backgroundColor: '#10B981', borderColor: '#059669' }]} onPress={handleToggleOnline}><Power size={24} color="#FFFFFF" /></TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.fab, showDemandMap && { backgroundColor: COLORS.primary }]} 
+            onPress={() => setShowDemandMap(!showDemandMap)}
+          >
+            <TrendingUp size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.fab, isOnline && styles.fabOnline]} 
+            onPress={handleToggleOnline}
+          >
+            <Power size={20} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       )}
 
@@ -414,351 +425,755 @@ export default function DriverHomeScreen({ navigation }: any) {
             {isRTL ? 'ابدأ الآن وزِد دخلك يا كابيتانو 💪' : 'Go online now and start earning!'}
           </Text>
           <TouchableOpacity style={styles.welcomeBannerBtn} onPress={handleToggleOnline} activeOpacity={0.85}>
-            <Power size={18} color="#fff" style={{ marginRight: 8 }} />
+            <Power size={16} color="#fff" style={{ marginRight: 8 }} />
             <Text style={styles.welcomeBannerBtnText}>{isRTL ? 'ابدأ استقبال الرحلات' : 'Start Receiving Trips'}</Text>
           </TouchableOpacity>
         </View>
       )}
 
+      {/* Active Trip Sheet */}
       {activeTrip && (
-        <SwipeableBottomSheet snapPoints={[400, 100]} initialSnapIndex={0} style={{ padding: 0 }}>
-        <View style={{ flex: 1, backgroundColor: 'transparent', paddingHorizontal: 0 }}>
-            {/* Top Dark Half */}
-            <View style={[styles.sheetTopDark, { height: 180 }]}>
-                <View style={[styles.sheetHeaderRow, isRTL && { flexDirection: 'row-reverse' }]}>
-                   <View style={{ flex: 1 }}>
-                      <Text style={[styles.sheetMakeModel, isRTL && { textAlign: 'right' }]}>{isRTL ? 'رحلة جارية' : t('active_trip')}</Text>
-                      <View style={[styles.sheetSubInfo, isRTL && { flexDirection: 'row-reverse' }]}>
-                         <User size={12} color="#9CA3AF" style={isRTL ? { marginLeft: 4 } : { marginRight: 4 }} />
-                         <Text style={styles.sheetSubText}>{activeTrip?.rider?.name || 'Passenger'}</Text>
-                      </View>
-                   </View>
-                </View>
-                <Image 
-                   source={{ uri: 'https://ui-avatars.com/api/?name=Rider&background=000&color=fff&size=128' }}
-                   style={[styles.sheetCarImg, { width: 80, height: 80, borderRadius: 40, top: 30, right: 20 }, isRTL && { left: 20, right: undefined }]} 
-                   resizeMode="contain" 
-                />
+        <SwipeableBottomSheet snapPoints={[340, 100]} initialSnapIndex={0} style={{ padding: 0 }}>
+          <View style={styles.activeSheetContent}>
+            {/* Driver Card — Active Trip */}
+            <View style={[styles.activeTripHeader, isRTL && { flexDirection: 'row-reverse' }]}>
+              <View style={styles.activeTripAvatar}>
+                <User size={20} color="#fff" />
+              </View>
+              <View style={{ flex: 1, marginHorizontal: 12 }}>
+                <Text style={[styles.activeTripTitle, isRTL && { textAlign: 'right' }]}>
+                  {isRTL ? 'رحلة جارية' : t('active_trip')}
+                </Text>
+                <Text style={[styles.activeTripSub, isRTL && { textAlign: 'right' }]}>
+                  {activeTrip?.rider?.name || 'Passenger'}
+                </Text>
+              </View>
+              <View style={[styles.tripPhaseBadge, tripStep === 'started' && { backgroundColor: '#DCFCE7', borderColor: '#86EFAC' }]}>
+                <Text style={[styles.tripPhaseText, tripStep === 'started' && { color: '#166534' }]}>
+                  {tripStep === 'arrived' ? (isRTL ? 'في الانتظار' : 'Waiting') : (isRTL ? 'قيادة' : 'Driving')}
+                </Text>
+              </View>
             </View>
 
-            {/* Bottom White Half */}
-            <View style={[styles.sheetBottomWhite, { minHeight: 220 }]}>
-               <Text style={[styles.sheetSectionTitle, isRTL && { textAlign: 'right' }]}>{isRTL ? 'إجراءات الكابتن' : 'Actions'}</Text>
-               
-               <View style={{ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 10 }}>
-                  <TouchableOpacity style={[styles.featureBox, { padding: 16, alignItems: 'center', flex: 1 }]} onPress={() => {}}>
-                     <Navigation size={26} color="#111" />
-                     <Text style={[styles.featureTitle, { marginTop: 8 }]}>{isRTL ? 'الخريطة' : 'Map'}</Text>
-                  </TouchableOpacity>
+            {/* Action Buttons */}
+            <View style={[styles.tripActions, isRTL && { flexDirection: 'row-reverse' }]}>
+              <TouchableOpacity style={styles.tripActionSmall} onPress={() => {}}>
+                <Navigation size={20} color={COLORS.primary} />
+                <Text style={styles.tripActionSmallText}>{isRTL ? 'الخريطة' : 'Map'}</Text>
+              </TouchableOpacity>
 
-                  {tripStep === 'arrived' && (
-                    <TouchableOpacity style={[styles.sheetActionBtn, { flex: 2, paddingVertical: 24, alignItems: 'center' }]} onPress={() => setTripStep('started')}>
-                        <Text style={styles.sheetActionText}>{isRTL ? 'بدء الرحلة' : 'Start Trip'}</Text>
-                    </TouchableOpacity>
-                  )}
-                  {tripStep === 'started' && (
-                    <TouchableOpacity style={[styles.sheetActionBtn, { flex: 2, paddingVertical: 24, alignItems: 'center', backgroundColor: '#111' }]} onPress={handleCompleteTrip}>
-                        <Text style={styles.sheetActionText}>{isRTL ? 'إنهاء الرحلة' : 'Complete Trip'}</Text>
-                    </TouchableOpacity>
-                  )}
-               </View>
+              {tripStep === 'arrived' && (
+                <TouchableOpacity style={styles.tripActionMain} onPress={() => setTripStep('started')} activeOpacity={0.85}>
+                  <Text style={styles.tripActionMainText}>{isRTL ? 'بدء الرحلة' : 'Start Trip'}</Text>
+                </TouchableOpacity>
+              )}
+              {tripStep === 'started' && (
+                <TouchableOpacity 
+                  style={[styles.tripActionMain, { backgroundColor: '#1C1C1E' }]} 
+                  onPress={handleCompleteTrip}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.tripActionMainText}>{isRTL ? 'إنهاء الرحلة' : 'Complete Trip'}</Text>
+                </TouchableOpacity>
+              )}
             </View>
-        </View>
+          </View>
         </SwipeableBottomSheet>
       )}
 
+      {/* ==== Incoming Trip Modal ==== */}
       <Modal visible={!!incomingTrip} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-            <View style={{ flex: 1, width: '100%', justifyContent: 'flex-end', backgroundColor: 'transparent', paddingHorizontal: 0 }}>
-                {/* Top Dark Half */}
-                <View style={[styles.sheetTopDark, { height: 230, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }]}>
-                    <View style={[styles.sheetHeaderRow, isRTL && { flexDirection: 'row-reverse' }]}>
-                       <View style={{ flex: 1 }}>
-                          <Text style={[styles.sheetMakeModel, isRTL && { textAlign: 'right' }]}>{isRTL ? `طلب رحلة جديد` : t('new_trip_request')}</Text>
-                          <View style={[styles.sheetSubInfo, isRTL && { flexDirection: 'row-reverse' }]}>
-                             <Clock size={12} color="#9CA3AF" style={isRTL ? { marginLeft: 4 } : { marginRight: 4 }} />
-                             <Text style={styles.sheetSubText}>{countdown} {isRTL ? 'ث للقبول' : 's'}</Text>
-                          </View>
-                       </View>
-                    </View>
-                    <Image 
-                       source={{ uri: 'https://ui-avatars.com/api/?name=New+Rider&background=000&color=fff&size=128' }}
-                       style={[styles.sheetCarImg, { width: 90, height: 90, borderRadius: 45, top: 40, right: 28 }, isRTL && { left: 28, right: undefined }]} 
-                       resizeMode="contain" 
-                    />
+          <View style={styles.incomingSheet}>
+            {/* Drag Handle */}
+            <View style={styles.dragHandle} />
+
+            {/* Header */}
+            <View style={[styles.incomingHeader, isRTL && { flexDirection: 'row-reverse' }]}>
+              <View style={styles.incomingAvatar}>
+                <User size={22} color="#fff" />
+              </View>
+              <View style={{ flex: 1, marginHorizontal: 12 }}>
+                <Text style={[styles.incomingTitle, isRTL && { textAlign: 'right' }]}>
+                  {isRTL ? 'طلب رحلة جديد' : t('new_trip_request')}
+                </Text>
+                <View style={[styles.countdownRow, isRTL && { flexDirection: 'row-reverse' }]}>
+                  <Clock size={12} color={COLORS.onSurfaceVariant} />
+                  <Text style={styles.countdownText}>{countdown} {isRTL ? 'ث' : 's'}</Text>
                 </View>
-
-                {/* Bottom White Half */}
-                <View style={[styles.sheetBottomWhite, { borderBottomLeftRadius: 0, borderBottomRightRadius: 0, paddingBottom: 40 }]}>
-                   <Text style={[styles.sheetSectionTitle, isRTL && { textAlign: 'right' }]}>{isRTL ? 'تفاصيل الوجهة' : 'Destination'}</Text>
-                   
-                   <View style={[styles.featuresGrid, { gap: 8, marginBottom: 24 }, isRTL && { flexDirection: 'row-reverse' }]}>
-                      <View style={[styles.featureBox, { flex: 1, padding: 12 }]}>
-                         <MapPin size={24} color="#111" />
-                         <Text style={styles.featureTitle} numberOfLines={1}>{incomingTrip?.pickupZone || '...'}</Text>
-                         <Text style={styles.featureSub}>{isRTL ? 'من' : 'From'}</Text>
-                      </View>
-                      <View style={[styles.featureBox, { flex: 1, padding: 12 }]}>
-                         <Navigation size={24} color="#111" />
-                         <Text style={styles.featureTitle} numberOfLines={1}>{incomingTrip?.dropoffZone || '...'}</Text>
-                         <Text style={styles.featureSub}>{isRTL ? 'إلى' : 'To'}</Text>
-                      </View>
-                   </View>
-
-                   <View style={[styles.sheetFooterRow, isRTL && { flexDirection: 'row-reverse' }]}>
-                      <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                         <Text style={styles.sheetPrice}>${incomingTrip?.fareEstimate?.toLocaleString() || '0'}</Text>
-                         <Text style={styles.sheetPriceSub}>/{isRTL ? 'الرحلة' : 'trip'}</Text>
-                      </View>
-                      
-                      <TouchableOpacity style={[styles.sheetActionBtn, { paddingHorizontal: 24 }]} onPress={handleAccept} activeOpacity={0.8}>
-                         <Text style={styles.sheetActionText}>{isRTL ? 'قبول الطلب' : 'Accept'}</Text>
-                      </TouchableOpacity>
-                   </View>
-
-                   <TouchableOpacity style={styles.cancelTxtBtn} onPress={handleRejectTrip}>
-                       <Text style={[styles.cancelTxtBtnText, { color: '#ef4444' }]}>{isRTL ? 'رفض الطلب' : 'Reject'}</Text>
-                   </TouchableOpacity>
-                </View>
+              </View>
+              {/* Countdown Progress */}
+              <View style={styles.countdownRing}>
+                <Text style={styles.countdownRingText}>{countdown}</Text>
+              </View>
             </View>
+
+            {/* Route Details */}
+            <View style={[styles.incomingRoute, isRTL && { flexDirection: 'row-reverse' }]}>
+              <View style={styles.incomingRouteBox}>
+                <View style={[styles.incomingRouteDot, { backgroundColor: COLORS.primary }]} />
+                <Text style={styles.incomingRouteLabel}>{isRTL ? 'من' : 'From'}</Text>
+                <Text style={styles.incomingRouteZone} numberOfLines={1}>{incomingTrip?.pickupZone || '...'}</Text>
+              </View>
+              <View style={styles.routeArrow}>
+                <Navigation size={14} color={COLORS.onSurfaceVariant} />
+              </View>
+              <View style={styles.incomingRouteBox}>
+                <View style={[styles.incomingRouteDot, { backgroundColor: '#F59E0B' }]} />
+                <Text style={styles.incomingRouteLabel}>{isRTL ? 'إلى' : 'To'}</Text>
+                <Text style={styles.incomingRouteZone} numberOfLines={1}>{incomingTrip?.dropoffZone || '...'}</Text>
+              </View>
+            </View>
+
+            {/* Fare */}
+            <View style={[styles.incomingFare, isRTL && { flexDirection: 'row-reverse' }]}>
+              <View>
+                <Text style={styles.incomingFareLabel}>{isRTL ? 'الأجرة' : 'Fare'}</Text>
+                <Text style={styles.incomingFareValue}>{t('sdg')} {incomingTrip?.fareEstimate?.toLocaleString() || '0'}</Text>
+              </View>
+              <TouchableOpacity style={styles.acceptBtn} onPress={handleAccept} activeOpacity={0.85}>
+                <Text style={styles.acceptBtnText}>{isRTL ? 'قبول الطلب' : 'Accept'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Reject */}
+            <TouchableOpacity style={styles.rejectBtn} onPress={handleRejectTrip} activeOpacity={0.8}>
+              <Text style={styles.rejectBtnText}>{isRTL ? 'رفض الطلب' : 'Reject'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
 
+      {/* ==== Trip Summary Modal ==== */}
       <Modal visible={showTripSummary} transparent animationType="fade">
-        <View style={styles.modalOverlayCenter}><View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>{isRTL ? '✅ نهاية الرحلة' : '✅ Trip Done'}</Text>
-          
-          <View style={{ width: '100%', backgroundColor: '#F8F9FA', padding: 16, borderRadius: 12, alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#E5E7EB' }}>
-            <Text style={{ fontSize: 11, color: '#6B7280', marginBottom: 4 }}>{isRTL ? 'إجمالي الأجرة' : 'Total Fare'}</Text>
-            <Text style={{ fontSize: 28, fontWeight: '900', color: '#000' }}>{t('sdg')} {(summaryData?.total || 0).toLocaleString()}</Text>
-          </View>
+        <View style={styles.modalOverlayCenter}>
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryTitle}>{isRTL ? '✅ نهاية الرحلة' : '✅ Trip Done'}</Text>
+            
+            {/* Total Fare Display */}
+            <View style={styles.summaryFareBox}>
+              <Text style={styles.summaryFareLabel}>{isRTL ? 'إجمالي الأجرة' : 'Total Fare'}</Text>
+              <Text style={styles.summaryFareValue}>{t('sdg')} {(summaryData?.total || 0).toLocaleString()}</Text>
+            </View>
 
-          <Text style={{ fontSize: 12, fontWeight: '600', color: '#6B7280', alignSelf: isRTL ? 'flex-end' : 'flex-start', marginBottom: 6 }}>
-            {isRTL ? 'المبلغ المستلم من الزبون' : 'Amount Received from Rider'}
-          </Text>
-          <TextInput
-            style={{ width: '100%', backgroundColor: '#F9F9F9', borderRadius: 12, padding: 14, textAlign: 'center', fontSize: 22, fontWeight: 'bold', borderWidth: 2, borderColor: receivedCash ? (Number(receivedCash) >= (summaryData?.total || 0) ? '#000' : '#E5E7EB') : '#E5E7EB' }}
-            placeholder={isRTL ? 'أدخل المبلغ...' : 'Enter amount...'}
-            keyboardType="numeric"
-            value={receivedCash}
-            onChangeText={setReceivedCash}
-          />
+            {/* Cash Input */}
+            <Text style={[styles.cashInputLabel, isRTL && { textAlign: 'right' }]}>
+              {isRTL ? 'المبلغ المستلم من الزبون' : 'Amount Received from Rider'}
+            </Text>
+            <TextInput
+              style={[
+                styles.cashInput,
+                receivedCash && Number(receivedCash) >= (summaryData?.total || 0) && { borderColor: COLORS.primary }
+              ]}
+              placeholder={isRTL ? 'أدخل المبلغ...' : 'Enter amount...'}
+              placeholderTextColor="#94A3B8"
+              keyboardType="numeric"
+              value={receivedCash}
+              onChangeText={setReceivedCash}
+            />
 
-          {receivedCash.length > 0 && (() => {
-            const received = Number(receivedCash) || 0;
-            const total = summaryData?.total || 0;
-            const diff = received - total;
-            const isExact = diff === 0;
-            const isShort = diff < 0;
-            const isOver = diff > 0;
+            {receivedCash.length > 0 && (() => {
+              const received = Number(receivedCash) || 0;
+              const total = summaryData?.total || 0;
+              const diff = received - total;
+              const isExact = diff === 0;
+              const isShort = diff < 0;
+              const isOver = diff > 0;
 
-            return (
-              <View style={{ width: '100%', marginTop: 12 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 10, borderRadius: 10, backgroundColor: isExact ? '#F3F4F6' : '#F3F4F6' }}>
-                  <Text style={{ fontSize: 20, marginRight: 8, color: '#000' }}>{isExact ? '✔' : isShort ? '!' : '+'}</Text>
-                  <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#000' }}>
-                    {isExact
-                      ? (isRTL ? 'المبلغ مطابق تماماً' : 'Exact amount received')
-                      : isShort
-                        ? (isRTL ? `ناقص ${t('sdg')} ${Math.abs(diff).toLocaleString()}` : `Short by ${t('sdg')} ${Math.abs(diff).toLocaleString()}`)
-                        : (isRTL ? `الباقي: ${t('sdg')} ${diff.toLocaleString()}` : `Change: ${t('sdg')} ${diff.toLocaleString()}`)}
-                  </Text>
-                </View>
-
-                {isOver && (
-                  <View style={{ marginTop: 12 }}>
-                    <TouchableOpacity 
-                      style={{ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', backgroundColor: addChangeToWallet ? '#000' : '#F9F9F9', padding: 14, borderRadius: 12, borderWidth: 1.5, borderColor: addChangeToWallet ? '#000' : '#E5E7EB' }}
-                      onPress={() => setAddChangeToWallet(!addChangeToWallet)}
-                    >
-                      <View style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: addChangeToWallet ? '#FFF' : '#CCC', backgroundColor: addChangeToWallet ? '#000' : 'transparent', justifyContent: 'center', alignItems: 'center', marginRight: isRTL ? 0 : 12, marginLeft: isRTL ? 12 : 0 }}>
-                        {addChangeToWallet && <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>✓</Text>}
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: addChangeToWallet ? '#FFF' : '#000', textAlign: isRTL ? 'right' : 'left' }}>
-                          {isRTL ? `إيداع ${t('sdg')} ${diff.toLocaleString()} في محفظة الزبون` : `Deposit ${t('sdg')} ${diff.toLocaleString()} to rider wallet`}
-                        </Text>
-                        <Text style={{ fontSize: 11, color: addChangeToWallet ? '#AAA' : '#6B7280', marginTop: 2, textAlign: isRTL ? 'right' : 'left' }}>
-                          {isRTL ? `سيتم الإيداع تلقائياً للزبون (${activeTrip?.rider?.name || 'الراكب'})` : `Auto-deposit for rider (${activeTrip?.rider?.name || 'Rider'})`}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    {addChangeToWallet && (
-                      <View style={{ marginTop: 8, backgroundColor: '#000', padding: 10, borderRadius: 8 }}>
-                        <Text style={{ fontSize: 11, color: '#FFF', textAlign: 'center', fontWeight: '600' }}>
-                          {isRTL 
-                            ? `سيتم إضافة ${t('sdg')} ${diff.toLocaleString()} لمحفظة الزبون وإشعاره برسالة.`
-                            : `${t('sdg')} ${diff.toLocaleString()} will be added to rider's wallet with a notification.`}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                )}
-
-                {isShort && (
-                  <View style={{ marginTop: 8, backgroundColor: '#111', padding: 10, borderRadius: 8 }}>
-                    <Text style={{ fontSize: 11, color: '#FFF', textAlign: 'center', fontWeight: '600' }}>
-                      {isRTL 
-                        ? `تنبيه: المبلغ أقل من الأجرة بـ ${t('sdg')} ${Math.abs(diff).toLocaleString()}. تأكد من استلام كامل المبلغ.`
-                        : `Warning: Amount is ${t('sdg')} ${Math.abs(diff).toLocaleString()} short. Make sure to collect the full fare.`}
+              return (
+                <View style={{ width: '100%', marginTop: 12 }}>
+                  <View style={[
+                    styles.cashStatusPill,
+                    isExact && { backgroundColor: '#F0FDF4', borderColor: '#86EFAC' },
+                    isShort && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
+                    isOver && { backgroundColor: '#EBF4FF', borderColor: '#BFDBFE' },
+                  ]}>
+                    <Text style={[
+                      styles.cashStatusIcon,
+                      isExact && { color: COLORS.success },
+                      isShort && { color: COLORS.error },
+                      isOver && { color: COLORS.primary },
+                    ]}>
+                      {isExact ? '✓' : isShort ? '!' : '+'}
+                    </Text>
+                    <Text style={[styles.cashStatusText, { color: '#1C1C1E' }]}>
+                      {isExact
+                        ? (isRTL ? 'المبلغ مطابق تماماً' : 'Exact amount received')
+                        : isShort
+                          ? (isRTL ? `ناقص ${t('sdg')} ${Math.abs(diff).toLocaleString()}` : `Short by ${t('sdg')} ${Math.abs(diff).toLocaleString()}`)
+                          : (isRTL ? `الباقي: ${t('sdg')} ${diff.toLocaleString()}` : `Change: ${t('sdg')} ${diff.toLocaleString()}`)}
                     </Text>
                   </View>
-                )}
-              </View>
-            );
-          })()}
 
-          <TouchableOpacity 
-            style={[styles.finalizeBtn, { marginTop: 16, opacity: (!receivedCash || Number(receivedCash) <= 0) ? 0.5 : 1 }]} 
-            onPress={finalizeTrip}
-            disabled={!receivedCash || Number(receivedCash) <= 0}
-          >
-            <Text style={styles.finalizeBtnText}>{isRTL ? 'تأكيد وإنهاء' : 'Confirm & Finish'}</Text>
-          </TouchableOpacity>
-        </View></View>
+                  {isOver && (
+                    <View style={{ marginTop: 12 }}>
+                      <TouchableOpacity 
+                        style={[
+                          styles.walletDepositBtn,
+                          addChangeToWallet && { backgroundColor: COLORS.primary, borderColor: COLORS.primary }
+                        ]}
+                        onPress={() => setAddChangeToWallet(!addChangeToWallet)}
+                      >
+                        <View style={[
+                          styles.checkCircle,
+                          addChangeToWallet && { backgroundColor: '#fff', borderColor: '#fff' }
+                        ]}>
+                          {addChangeToWallet && <Text style={{ color: COLORS.primary, fontSize: 12, fontWeight: 'bold' }}>✓</Text>}
+                        </View>
+                        <View style={{ flex: 1, marginHorizontal: 12 }}>
+                          <Text style={[styles.walletDepositTitle, addChangeToWallet && { color: '#fff' }, isRTL && { textAlign: 'right' }]}>
+                            {isRTL ? `إيداع ${t('sdg')} ${diff.toLocaleString()} في محفظة الزبون` : `Deposit ${t('sdg')} ${diff.toLocaleString()} to rider wallet`}
+                          </Text>
+                          <Text style={[styles.walletDepositSub, addChangeToWallet && { color: 'rgba(255,255,255,0.7)' }, isRTL && { textAlign: 'right' }]}>
+                            {isRTL ? `سيتم الإيداع تلقائياً للزبون (${activeTrip?.rider?.name || 'الراكب'})` : `Auto-deposit for rider (${activeTrip?.rider?.name || 'Rider'})`}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+
+                      {addChangeToWallet && (
+                        <View style={styles.walletDepositNote}>
+                          <Text style={styles.walletDepositNoteText}>
+                            {isRTL 
+                              ? `سيتم إضافة ${t('sdg')} ${diff.toLocaleString()} لمحفظة الزبون وإشعاره برسالة.`
+                              : `${t('sdg')} ${diff.toLocaleString()} will be added to rider's wallet with a notification.`}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  {isShort && (
+                    <View style={styles.shortWarning}>
+                      <Text style={styles.shortWarningText}>
+                        {isRTL 
+                          ? `تنبيه: المبلغ أقل من الأجرة بـ ${t('sdg')} ${Math.abs(diff).toLocaleString()}. تأكد من استلام كامل المبلغ.`
+                          : `Warning: Amount is ${t('sdg')} ${Math.abs(diff).toLocaleString()} short. Make sure to collect the full fare.`}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })()}
+
+            {/* Finalize Button */}
+            <TouchableOpacity 
+              style={[styles.finalizeBtn, { opacity: (!receivedCash || Number(receivedCash) <= 0) ? 0.5 : 1 }]} 
+              onPress={finalizeTrip}
+              disabled={!receivedCash || Number(receivedCash) <= 0}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.finalizeBtnText}>{isRTL ? 'تأكيد وإنهاء' : 'Confirm & Finish'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: { flex: 1, backgroundColor: '#F1F5F9' },
   map: { width, height },
-  mapFallback: { flex: 1, backgroundColor: '#F8F9FA' },
+  mapFallback: { flex: 1, backgroundColor: '#F1F5F9' },
   mapCenterDot: { position: 'absolute', top: '45%', left: '50%', marginLeft: -20 },
-  mapCenterDotInner: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' },
-  driverMarker: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#fff' },
+  mapCenterDotInner: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', ...SHADOWS.md },
+  driverMarker: { width: 32, height: 32, borderRadius: 16, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', borderWidth: 2.5, borderColor: '#fff', ...SHADOWS.sm },
   mockCarOverlay: { position: 'absolute', zIndex: 5 },
-  topBar: { position: 'absolute', top: 50, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', zIndex: 10 },
-  iconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#1C1C1E', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#333', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
-  wedoBrandPill: { backgroundColor: '#000000', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 24, borderWidth: 1, borderColor: '#333', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
-  wedoBrandText: { fontSize: 18, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.5 },
-  statusBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1C1C1E', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 24, borderWidth: 1, borderColor: '#333', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
-  statusBadgeOnline: { borderColor: COLORS.success, backgroundColor: '#112211' },
+  
+  // Top Bar
+  topBar: {
+    position: 'absolute',
+    top: 50,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  iconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.md,
+  },
+  wedoBrandPill: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 24,
+    ...SHADOWS.md,
+  },
+  wedoBrandText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#1C1C1E',
+    letterSpacing: -0.3,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    ...SHADOWS.md,
+  },
+  statusBadgeOnline: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+  },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
-  statusText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF' },
-  statusTextOnline: { color: COLORS.success },
+  statusText: { fontSize: 13, fontWeight: '800', color: '#475569' },
+  statusTextOnline: { color: '#166534' },
 
-  // Welcome Banner (shown when driver is offline)
+  // Welcome Banner
   welcomeBanner: {
     position: 'absolute',
     bottom: 110,
     left: 16,
     right: 16,
-    backgroundColor: '#1C1C1E',
+    backgroundColor: '#fff',
     borderRadius: 24,
-    padding: 20,
+    padding: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#333',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 12,
+    borderColor: '#E2E8F0',
+    ...SHADOWS.lg,
     zIndex: 20,
   },
   welcomeBannerEmoji: { fontSize: 36, marginBottom: 8 },
-  welcomeBannerTitle: { fontSize: 22, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.5, marginBottom: 6 },
-  welcomeBannerSub: { fontSize: 14, color: '#9CA3AF', fontWeight: '600', marginBottom: 20, textAlign: 'center', lineHeight: 20 },
+  welcomeBannerTitle: { fontSize: 22, fontWeight: '900', color: '#1C1C1E', letterSpacing: -0.5, marginBottom: 6 },
+  welcomeBannerSub: { fontSize: 14, color: COLORS.onSurfaceVariant, fontWeight: '600', marginBottom: 20, textAlign: 'center', lineHeight: 20 },
   welcomeBannerBtn: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#10B981',
-    paddingVertical: 14, paddingHorizontal: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.success,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
     borderRadius: 50,
-    shadowColor: '#10B981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 6,
+    ...SHADOWS.md,
   },
   welcomeBannerBtnText: { fontSize: 15, fontWeight: '900', color: '#FFFFFF' },
+  
+  // FABs
   fabContainer: { position: 'absolute', right: 20, bottom: 40, gap: 12 },
-  fab: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#1C1C1E', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#333', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
-  demandLegend: { position: 'absolute', top: 110, left: 20, right: 20, backgroundColor: '#1C1C1E', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#333', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 6 },
-  legendTitle: { fontSize: 14, fontWeight: '800', color: '#FFF' },
-  legendRadius: { fontSize: 12, color: '#FFFFFF', fontWeight: 'bold' },
+  fab: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#475569',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.md,
+  },
+  fabOnline: { backgroundColor: COLORS.success },
+  
+  // Demand
+  demandLegend: {
+    position: 'absolute',
+    top: 110,
+    left: 16,
+    right: 16,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    ...SHADOWS.md,
+  },
+  legendTitle: { fontSize: 14, fontWeight: '800', color: '#1C1C1E' },
+  legendRadius: { fontSize: 12, color: COLORS.onSurfaceVariant, fontWeight: '700' },
   radiusBar: { flexDirection: 'row', justifyContent: 'space-between' },
-  radiusStep: { width: 35, height: 30, borderRadius: 15, backgroundColor: '#333', justifyContent: 'center', alignItems: 'center' },
-  radiusStepActive: { backgroundColor: COLORS.success },
-  radiusText: { fontSize: 11, color: '#FFFFFF', fontWeight: 'bold' },
-  radiusTextActive: { color: '#000', fontWeight: '800' },
+  radiusStep: { width: 40, height: 32, borderRadius: 16, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0' },
+  radiusStepActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  radiusText: { fontSize: 12, color: '#475569', fontWeight: '700' },
+  radiusTextActive: { color: '#fff', fontWeight: '800' },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   demandCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.success },
-  activeSheetWrapper: { paddingHorizontal: 24, paddingBottom: 24 },
-  activePulse: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.success, marginRight: 8 },
-  activeLabel: { fontSize: 12, fontWeight: '800', color: COLORS.success },
-  activeActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  startTripSlide: { flex: 1, height: 50, backgroundColor: '#1C1C1E', borderWidth: 1, borderColor: COLORS.success, borderRadius: 25, justifyContent: 'center', alignItems: 'center' },
-  slideLabel: { color: COLORS.success, fontWeight: '800' },
-  completeTripBtn: { flex: 1, height: 50, backgroundColor: '#1C1C1E', borderWidth: 1, borderColor: COLORS.error, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  completeTripBtnText: { color: COLORS.error, fontWeight: '800' },
-  navBtnSmall: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#333', justifyContent: 'center', alignItems: 'center' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'flex-end' },
-  requestCard: { backgroundColor: '#1C1C1E', padding: 24, paddingBottom: 40, borderTopLeftRadius: 32, borderTopRightRadius: 32, borderWidth: 1, borderColor: '#333' },
-  requestTitle: { fontSize: 20, fontWeight: '900', color: '#FFF' },
-  tripDetailRow: { flexDirection: 'row', alignItems: 'center' },
-  tripDetailLabel: { fontSize: 13, color: '#FFFFFF', marginBottom: 2, fontWeight: 'bold' },
-  tripDetailAddress: { fontSize: 15, fontWeight: '800', color: '#FFF' },
-  routeDivider: { height: 20, width: 2, backgroundColor: '#333', marginLeft: 8, marginVertical: 4 },
-  fareInfoValue: { fontSize: 28, fontWeight: '900', color: '#FFF', marginBottom: 16 },
-  acceptBtn: { 
-    backgroundColor: '#FFFFFF', 
-    padding: 16, 
-    borderRadius: 24, 
-    alignItems: 'center', 
-    marginBottom: 16,
-    borderBottomWidth: 6,
-    borderBottomColor: '#D1D5DB', // 3D Effect like Welcome screen!
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5, elevation: 8
-  },
-  acceptBtnText: { color: '#000', fontWeight: '900', fontSize: 18 },
-  rejectBtn: { 
-    backgroundColor: '#1C1C1E', 
-    padding: 16, 
-    borderRadius: 20, 
+
+  // Navigation Overlay
+  navOverlayHeader: {
+    position: 'absolute',
+    top: 90,
+    left: 16,
+    right: 16,
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 20,
+    ...SHADOWS.lg,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1, 
-    borderColor: '#333',
-    borderBottomWidth: 6,
-    borderBottomColor: '#000000', // Deep 3D Shadow
   },
-  rejectBtnText: { color: '#ef4444', fontWeight: '900', fontSize: 16 },
-  modalOverlayCenter: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modalOptionText: { fontSize: 16, color: '#FFF', fontWeight: '800', marginLeft: 12 },
-  modalCancelBtn: { marginTop: 12, padding: 16, backgroundColor: '#1C1C1E', borderWidth: 1, borderColor: '#333', borderRadius: 16, alignItems: 'center' },
-  
-  // Uber Style Nav Overlay
-  navOverlayHeader: { position: 'absolute', top: 90, left: 16, right: 16, backgroundColor: '#1C1C1E', padding: 20, borderRadius: 20, borderWidth: 1, borderColor: '#333', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 10, flexDirection: 'row', alignItems: 'center' },
-  navDistance: { color: '#FFFFFF', fontSize: 14, fontWeight: '900' },
-  navRoadName: { color: '#FFF', fontSize: 26, fontWeight: '900', marginTop: 4 },
-  navCarRing: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0, 255, 128, 0.1)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.success },
-  navCarDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.success, borderWidth: 2, borderColor: '#1C1C1E' },
-  destinationBox: { backgroundColor: '#333', padding: 8, borderRadius: 12, borderWidth: 2, borderColor: '#FFF' },
-  summaryCard: { width: '100%', backgroundColor: '#1C1C1E', borderWidth: 1, borderColor: '#333', borderRadius: 24, padding: 24, alignItems: 'center' },
-  summaryTitle: { fontSize: 22, fontWeight: '900', color: '#FFF', marginBottom: 16 },
-  finalizeBtn: { width: '100%', backgroundColor: '#FFF', padding: 16, borderRadius: 16, alignItems: 'center' },
-  finalizeBtnText: { color: '#000', fontWeight: '900', fontSize: 18 },
+  navDistance: { color: COLORS.primary, fontSize: 14, fontWeight: '900' },
+  navRoadName: { color: '#1C1C1E', fontSize: 24, fontWeight: '900', marginTop: 2, letterSpacing: -0.5 },
+  navCarRing: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(16,185,129,0.1)', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: COLORS.success },
+  navCarDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.success, borderWidth: 2, borderColor: '#fff' },
+  destinationBox: { backgroundColor: '#F59E0B', padding: 8, borderRadius: 12, borderWidth: 2, borderColor: '#fff' },
 
-  // New Interlocking Two-Tone Sheet Styles
-  sheetTopDark: { backgroundColor: '#1C1C1E', height: 200, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingTop: 32, position: 'relative' },
-  sheetHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  sheetMakeModel: { fontSize: 24, fontWeight: '900', color: '#FFF', letterSpacing: -0.5 },
-  sheetSubInfo: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
-  sheetSubText: { fontSize: 13, color: '#FFFFFF', fontWeight: '900' },
-  sheetCloseBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
-  sheetCarImg: { position: 'absolute', top: 30, right: -20, width: 220, height: 110 },
+  // Active Trip Sheet
+  activeSheetContent: {
+    paddingHorizontal: 24,
+    paddingBottom: 8,
+  },
+  activeTripHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  activeTripAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.sm,
+  },
+  activeTripTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#1C1C1E',
+    letterSpacing: -0.3,
+  },
+  activeTripSub: {
+    fontSize: 13,
+    color: COLORS.onSurfaceVariant,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  tripPhaseBadge: {
+    backgroundColor: '#EBF4FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  tripPhaseText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+  tripActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  tripActionSmall: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  tripActionSmallText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  tripActionMain: {
+    flex: 2,
+    backgroundColor: COLORS.primary,
+    borderRadius: 16,
+    paddingVertical: 20,
+    alignItems: 'center',
+    ...SHADOWS.md,
+  },
+  tripActionMainText: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#fff',
+  },
 
-  sheetBottomWhite: { backgroundColor: '#FFFFFF', marginTop: -40, borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 24, minHeight: 300, ...SHADOWS.lg },
-  sheetSectionTitle: { fontSize: 18, fontWeight: '900', color: '#111', marginBottom: 16 },
-  featuresGrid: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, marginBottom: 32 },
-  featureBox: { flex: 1, backgroundColor: '#F8F9FA', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#E5E7EB', alignItems: 'flex-start' },
-  featureTitle: { fontSize: 16, fontWeight: '900', color: '#111', marginTop: 12, marginBottom: 2 },
-  featureSub: { fontSize: 11, color: '#6B7280', fontWeight: '700' },
+  // Modal Overlay
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   
-  sheetFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  sheetPrice: { fontSize: 36, fontWeight: '900', color: '#111', letterSpacing: -1 },
-  sheetPriceSub: { fontSize: 16, color: '#6B7280', fontWeight: '700', marginLeft: 4 },
-  sheetActionBtn: { backgroundColor: '#000', paddingHorizontal: 32, paddingVertical: 18, borderRadius: 30 },
-  sheetActionText: { color: '#FFF', fontSize: 16, fontWeight: '900' },
-  
-  cancelTxtBtn: { alignSelf: 'center', marginTop: 16, paddingVertical: 8, paddingHorizontal: 16 },
-  cancelTxtBtnText: { color: '#ef4444', fontWeight: '900', fontSize: 14 }
+  // Incoming Sheet
+  incomingSheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
+  dragHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E2E8F0',
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 20,
+  },
+  incomingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  incomingAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.sm,
+  },
+  incomingTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#1C1C1E',
+    letterSpacing: -0.3,
+  },
+  countdownRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  countdownText: {
+    fontSize: 12,
+    color: COLORS.onSurfaceVariant,
+    fontWeight: '700',
+  },
+  countdownRing: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 2,
+    borderColor: COLORS.error,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  countdownRingText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: COLORS.error,
+  },
+
+  incomingRoute: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 8,
+    marginBottom: 20,
+  },
+  incomingRouteBox: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  incomingRouteDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginBottom: 8,
+  },
+  incomingRouteLabel: {
+    fontSize: 11,
+    color: COLORS.onSurfaceVariant,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  incomingRouteZone: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1C1C1E',
+  },
+  routeArrow: {
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+
+  incomingFare: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  incomingFareLabel: {
+    fontSize: 12,
+    color: COLORS.onSurfaceVariant,
+    fontWeight: '600',
+  },
+  incomingFareValue: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#1C1C1E',
+    letterSpacing: -0.5,
+  },
+  acceptBtn: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 16,
+    ...SHADOWS.md,
+  },
+  acceptBtnText: { color: '#fff', fontWeight: '900', fontSize: 16 },
+  rejectBtn: {
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+  },
+  rejectBtnText: { color: COLORS.error, fontWeight: '700', fontSize: 14 },
+
+  // Summary Modal
+  modalOverlayCenter: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  summaryCard: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    ...SHADOWS.lg,
+  },
+  summaryTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1C1C1E',
+    marginBottom: 16,
+    letterSpacing: -0.3,
+  },
+  summaryFareBox: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  summaryFareLabel: {
+    fontSize: 12,
+    color: COLORS.onSurfaceVariant,
+    fontWeight: '600',
+    marginBottom: 6,
+  },
+  summaryFareValue: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: '#1C1C1E',
+    letterSpacing: -0.5,
+  },
+  cashInputLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.onSurfaceVariant,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  cashInput: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 16,
+    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1C1C1E',
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+  },
+  cashStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  cashStatusIcon: {
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  cashStatusText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  walletDepositBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  checkCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  walletDepositTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1C1C1E',
+  },
+  walletDepositSub: {
+    fontSize: 11,
+    color: COLORS.onSurfaceVariant,
+    marginTop: 2,
+  },
+  walletDepositNote: {
+    marginTop: 8,
+    backgroundColor: '#EBF4FF',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  walletDepositNoteText: {
+    fontSize: 11,
+    color: COLORS.primary,
+    textAlign: 'center',
+    fontWeight: '700',
+  },
+  shortWarning: {
+    marginTop: 8,
+    backgroundColor: '#FEF2F2',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  shortWarningText: {
+    fontSize: 11,
+    color: COLORS.error,
+    textAlign: 'center',
+    fontWeight: '700',
+  },
+  finalizeBtn: {
+    width: '100%',
+    backgroundColor: COLORS.primary,
+    padding: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginTop: 20,
+    ...SHADOWS.md,
+  },
+  finalizeBtnText: {
+    color: '#fff',
+    fontWeight: '900',
+    fontSize: 17,
+  },
 });

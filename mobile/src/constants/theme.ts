@@ -1,15 +1,12 @@
-// Design system based on the DESIGN.md spec 
-// "Editorial Utility" — High-Contrast Mobility for Sudan
 export const COLORS = {
   // --- New Wedo Logo Base Colors ---
-  // The vibrant, friendly sky/ocean blue matching the 'wedo' text and map pin
-  primary: '#0084FF',       
-  primaryContainer: '#005CBE', // Deeper shade from the pin shadow
-  primaryFixed: '#E0F2FE',     // Light icy blue for card backgrounds
+  primary: '#1877F2',       
+  primaryContainer: '#0C4CB0',
+  primaryFixed: '#EBF4FF',
 
   // Accent (Sky Blue highlights from the top of the pin)
-  accent: '#38BDF8',       
-  accentLight: '#F0F9FF',
+  accent: '#2B7DF4',       
+  accentLight: '#F3F8FF',
   
   // Surfaces (Clean, bright friendly aesthetic)
   surface: '#FFFFFF',
