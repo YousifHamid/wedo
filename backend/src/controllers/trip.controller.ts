@@ -79,7 +79,12 @@ export const acceptTrip = async (req: Request, res: Response) => {
 
     // Check driver wallet balance
     const driver = await User.findById(driverId);
-    if (!driver || driver.walletBalance <= 0) {
+    
+    if (!driver) return res.status(404).json({ message: 'Driver not found' });
+
+    console.log(driver._id);
+
+    if (driver.walletBalance <= 0) {
       return res.status(403).json({ message: 'Insufficient wallet balance to accept trips' });
     }
 
