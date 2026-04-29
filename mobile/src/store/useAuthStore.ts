@@ -64,10 +64,7 @@ const useAuthStore = create<AuthState>()(
         // Only drivers can switch between driver and rider
         if (actualOriginalRole === 'driver') {
           const newRole = state.user.role === 'driver' ? 'rider' : 'driver';
-          const newName = state.user._id?.includes('mock') 
-            ? (newRole === 'driver' ? 'Reviewer Captain' : 'Reviewer Passenger')
-            : state.user.name;
-          return { originalRole: actualOriginalRole, user: { ...state.user, role: newRole, name: newName } };
+          return { originalRole: actualOriginalRole, user: { ...state.user, role: newRole } };
         }
         return state;
       }),

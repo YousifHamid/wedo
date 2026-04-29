@@ -303,23 +303,9 @@ export default function DriverHomeScreen({ navigation }: any) {
         </MapView>
       );
     }
-    const nearbyCarPositions = [
-      { id: 'n1', top: '22%', left: '18%', rot: '25deg' },
-      { id: 'n2', top: '30%', left: '68%', rot: '-20deg' },
-      { id: 'n3', top: '62%', left: '35%', rot: '90deg' },
-      { id: 'n4', top: '18%', left: '50%', rot: '-50deg' },
-      { id: 'n5', top: '70%', left: '72%', rot: '140deg' },
-    ];
     return (
       <View style={styles.mapFallback}>
         <MapView style={{ flex: 1 }}>
-          {isOnline && !activeTrip && nearbyCarPositions.map(car => (
-            <View key={car.id} style={[styles.mockCarOverlay, { top: car.top as any, left: car.left as any }]}>
-              <View style={[styles.driverMarker, { transform: [{ rotate: car.rot }], backgroundColor: '#475569', width: 28, height: 28, borderRadius: 14 }]}>
-                <Car color="#fff" size={12} />
-              </View>
-            </View>
-          ))}
           {/* Driver Active Trip Nav View */}
           {activeTrip && (
             <>

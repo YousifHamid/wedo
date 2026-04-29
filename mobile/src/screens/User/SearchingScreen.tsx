@@ -56,23 +56,6 @@ export default function SearchingScreen({ navigation }: any) {
     dotLoop.start();
 
     const requestTrip = async () => {
-      const { isServerEnabled } = useAuthStore.getState();
-      
-      if (!isServerEnabled) {
-        const mockTimer = setTimeout(() => {
-          const mockDriver = {
-            _id: 'mock_driver_99',
-            name: 'Ahmed Captain',
-            nameAr: 'أحمد الكابتن',
-            phone: '0912345678',
-            reliabilityScore: 4.8,
-            vehicleDetails: { make: 'Hyundai', model: 'Accent', plateNumber: 'خ ٤ - ١٢٣٤' }
-          };
-          handleDriverAssigned(mockDriver);
-        }, 3000);
-        return;
-      }
-
       try {
         const response = await api.post('/trip/request', {
           pickupZoneId: pickupZone?._id,
@@ -82,18 +65,9 @@ export default function SearchingScreen({ navigation }: any) {
         const { trip } = response.data;
         setCurrentTrip(trip);
       } catch (error: any) {
-        console.log('[Wedo] Server trip request failed, switching to mock mode');
-        setTimeout(() => {
-          const mockDriver = {
-            _id: 'mock_driver_fallback',
-            name: 'Ahmed Captain',
-            nameAr: 'أحمد الكابتن',
-            phone: '0912345678',
-            reliabilityScore: 4.7,
-            vehicleDetails: { make: 'Toyota', model: 'Camry', plateNumber: 'ك م ٢ - ٤٥٦٧' }
-          };
-          handleDriverAssigned(mockDriver);
-        }, 3000);
+        console.log('[Wedo] Server trip request failed:', error.message);
+        Alert.alert(isRTL ? 'خطأ' : 'Error', isRTL ? 'فشل طلب الرحلة، يرجى المحاولة مرة أخرى.' : 'Failed to request trip, please try again.');
+        navigation.goBack();
       }
     };
 
@@ -124,17 +98,8 @@ export default function SearchingScreen({ navigation }: any) {
   const handleTryAgain = () => {
     setShowApology(false);
     setPhase('searching');
-    setTimeout(() => {
-      const mockDriver = {
-        _id: 'mock_driver_retry',
-        name: 'Mohammed Captain',
-        nameAr: 'محمد الكابتن',
-        phone: '0987654321',
-        reliabilityScore: 4.9,
-        vehicleDetails: { make: 'Toyota', model: 'Corolla', plateNumber: 'ب ١ - ٨٨٨٨' }
-      };
-      handleDriverAssigned(mockDriver);
-    }, 3000);
+    // Just trigger the API call again or reload
+    navigation.replace('Searching');
   };
 
   const confirmCancel = (reason: string) => {

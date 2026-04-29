@@ -3,7 +3,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/mashi';
+const MONGO_URI = process.env.MONGO_URI;
+if (!MONGO_URI) {
+  throw new Error("MONGO_URI is missing. Please set your MongoDB Atlas URI in the .env file.");
+}
 
 const zones = [
   { name: 'Khartoum North', nameAr: 'الخرطوم شمال', description: 'Industrial Area', descriptionAr: 'المنطقة الصناعية', order: 1 },

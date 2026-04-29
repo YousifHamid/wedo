@@ -2,7 +2,10 @@ import mongoose from 'mongoose';
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/namshi');
+    if (!process.env.MONGO_URI) {
+      throw new Error("MONGO_URI is missing. Please set your MongoDB Atlas URI in the .env file.");
+    }
+    const conn = await mongoose.connect(process.env.MONGO_URI);
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     if (error instanceof Error) {

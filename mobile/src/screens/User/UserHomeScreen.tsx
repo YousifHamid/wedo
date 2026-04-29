@@ -244,15 +244,6 @@ export default function UserHomeScreen({ navigation }: any) {
   const finalFare = currentFare + (stops.length * 1500);
 
   const renderMap = () => {
-    // Static positions for mock driver cars (scattered around center)
-    const mockCarPositions = [
-      { id: 1, top: '28%', left: '22%', rot: '30deg' },
-      { id: 2, top: '35%', left: '65%', rot: '-15deg' },
-      { id: 3, top: '55%', left: '40%', rot: '80deg' },
-      { id: 4, top: '20%', left: '55%', rot: '-45deg' },
-      { id: 5, top: '65%', left: '70%', rot: '120deg' },
-    ];
-
     if (MapView && !mapError) {
       return (
         <View style={styles.mapContainer}>
@@ -285,14 +276,6 @@ export default function UserHomeScreen({ navigation }: any) {
         </View>
       );
     }
-    // ── Mock map: use InteractiveMapMock with full pan + pinch-zoom ──
-    const mockDrivers = [
-      { id: 'd1', top: '28%', left: '22%', rot: '30deg' },
-      { id: 'd2', top: '35%', left: '65%', rot: '-15deg' },
-      { id: 'd3', top: '55%', left: '40%', rot: '80deg' },
-      { id: 'd4', top: '20%', left: '55%', rot: '-45deg' },
-      { id: 'd5', top: '65%', left: '70%', rot: '120deg' },
-    ];
     return (
       <View style={[styles.mapContainer, { backgroundColor: COLORS.primary }]}>
         {/* Solid Primary Blue Background per UX request - Removed Scenic Image */}
@@ -300,7 +283,7 @@ export default function UserHomeScreen({ navigation }: any) {
         {/* Transparent Interactive Map Handler */}
         <InteractiveMapMock
           style={StyleSheet.absoluteFill}
-          drivers={!selectedDropoff ? mockDrivers : []}
+          drivers={!selectedDropoff ? drivers : []}
           onDragStart={handleMapDragStart}
           onDragEnd={handleMapDragEnd}
         />
