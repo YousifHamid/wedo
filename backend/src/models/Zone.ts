@@ -5,6 +5,8 @@ export interface IZone extends Document {
   nameAr: string;
   description?: string;
   descriptionAr?: string;
+  lat?: number;
+  lng?: number;
   isActive: boolean;
   order: number;
 }
