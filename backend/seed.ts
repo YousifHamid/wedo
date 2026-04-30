@@ -1,5 +1,9 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import dns from 'dns';
+
+// Bypass ISP DNS blocking by using Google DNS for SRV lookups
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 dotenv.config();
 
