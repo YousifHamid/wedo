@@ -31,12 +31,12 @@
         "foregroundImage": "./assets/playstore.png"
       },
       "icon": "./assets/playstore.png",
-      "package": "com.wedo.app"
+      "package": "com.wedo.ride"
     },
     "ios": {
       "icon": "./assets/appstore.png",
       "supportsTablet": true,
-      "bundleIdentifier": "com.wedo.app",
+      "bundleIdentifier": "com.wedo.ride",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Wedo needs your location to find nearby drivers and provide accurate pickup points.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Wedo needs background location to track your trip and ensure safety even when the app is minimized.",
