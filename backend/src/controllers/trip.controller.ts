@@ -21,8 +21,8 @@ export const requestTrip = async (req: Request, res: Response) => {
       const Zone = mongoose.model('Zone');
       const defaultZone = await Zone.findOne();
       if (defaultZone) {
-        pZoneId = mongoose.Types.ObjectId.isValid(pZoneId) ? pZoneId : defaultZone._id.toString();
-        dZoneId = mongoose.Types.ObjectId.isValid(dZoneId) ? dZoneId : defaultZone._id.toString();
+        pZoneId = mongoose.Types.ObjectId.isValid(pZoneId) ? pZoneId : (defaultZone as any)._id.toString();
+        dZoneId = mongoose.Types.ObjectId.isValid(dZoneId) ? dZoneId : (defaultZone as any)._id.toString();
       } else {
         return res.status(400).json({ message: 'System error: No zones configured.' });
       }
@@ -92,7 +92,7 @@ export const acceptTrip = async (req: Request, res: Response) => {
     driver.isBusy = true;
     await driver.save();
 
-    const trip = await recordDispatchAttempt(tripId, driverId, 'accepted');
+    const trip = await recordDispatchAttempt(tripId as string, driverId, 'accepted');
 
     const populatedTrip = await Trip.findById(tripId)
       .populate('rider', 'name phone')
@@ -100,7 +100,7 @@ export const acceptTrip = async (req: Request, res: Response) => {
 
     // 🔒 Assign masked proxy numbers (rider & driver never see each other's real number)
     try {
-      await assignProxyNumbers(tripId);
+      await assignProxyNumbers(tripId as string);
     } catch (_) { /* non-fatal */ }
 
     res.json({ message: 'Trip accepted', trip: populatedTrip });
@@ -115,10 +115,10 @@ export const rejectTrip = async (req: Request, res: Response) => {
     const { tripId } = req.params;
     const driverId = (req as any).user._id;
 
-    await recordDispatchAttempt(tripId, driverId, 'rejected');
+    await recordDispatchAttempt(tripId as string, driverId, 'rejected');
 
     // Try next driver
-    const nextDriver = await startDispatch(tripId);
+    const nextDriver = await startDispatch(tripId as string);
 
     if (!nextDriver) {
       return res.json({ message: 'Trip rejected. No more drivers available.', nextDriver: null });
@@ -164,14 +164,14 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       const finalFare = trip.fareEstimate;
       trip.finalFare = finalFare;
       const commResult = await deductCommission(
-        trip.driver.toString(), trip.rider.toString(), tripId, finalFare, 9
+        trip.driver.toString(), trip.rider.toString(), tripId as string, finalFare, 9
       );
       trip.commission = commResult.commission;
       trip.paymentMethod = commResult.isFreeForRider ? ('system_subsidized' as any) : 'cash';
 
       await User.findByIdAndUpdate(trip.driver, { isBusy: false });
       // Release proxy numbers after trip ends
-      try { await releaseProxyNumbers(tripId); } catch (_) { }
+      try { await releaseProxyNumbers(tripId as string); } catch (_) { }
     }
 
     if (status === TripStatus.CANCELLED && trip.driver) {
@@ -255,7 +255,7 @@ export const submitComplaint = async (req: Request, res: Response) => {
     const userId = (req as any).user._id;
 
     const complaint = new Complaint({
-      tripId,
+      tripId: tripId as string,
       reporterId: userId,
       reportedId,
       reason,
