@@ -68,6 +68,22 @@ export default function DriverHomeScreen({ navigation }: any) {
     let locationSub: any = null;
     (async () => {
       try {
+        let { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+        if (existingStatus !== 'granted') {
+          await new Promise<void>((resolve) => {
+            Alert.alert(
+              isRTL ? 'تتبع مسار الرحلة (الموقع)' : 'Location Tracking',
+              isRTL 
+                ? 'يجمع تطبيق Wedo بيانات الموقع لتمكين تتبع مسارك وتوصيلك بالركاب لضمان أمان الجميع، حتى عندما يكون التطبيق مغلقاً أو غير مستخدم.'
+                : 'Wedo collects location data to enable ride tracking and rider matching to ensure safety, even when the app is closed or not in use.',
+              [
+                { text: isRTL ? 'إلغاء' : 'Cancel', style: 'cancel', onPress: () => resolve() },
+                { text: isRTL ? 'أوافق' : 'I Understand', onPress: () => resolve() }
+              ]
+            );
+          });
+        }
+
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') return;
         let loc = await Location.getCurrentPositionAsync({});

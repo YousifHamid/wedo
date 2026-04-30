@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
@@ -44,6 +45,16 @@ setupSockets(io);
 // Basic Route
 app.get('/', (req, res) => {
   res.send('Mashi API Running');
+});
+
+// Serve Privacy Policy
+app.get('/privacy-policy', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/privacy-policy.html'));
+});
+
+// Serve Account Deletion Page
+app.get('/delete-account', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/delete-account.html'));
 });
 
 const PORT = process.env.PORT || 5000;

@@ -25,6 +25,22 @@ export default function SignUpScreen({ route, navigation }: any) {
   const handleDetectLocation = async () => {
     setDetecting(true);
     try {
+      let { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+      if (existingStatus !== 'granted') {
+        await new Promise<void>((resolve) => {
+          Alert.alert(
+            isRTL ? 'تتبع مسار الرحلة (الموقع)' : 'Location Tracking',
+            isRTL 
+              ? 'يجمع تطبيق Wedo بيانات الموقع لتمكين تتبع رحلتك وتوصيلك لضمان الأمان، حتى عندما يكون التطبيق مغلقاً أو غير مستخدم.'
+              : 'Wedo collects location data to enable ride tracking and matching to ensure safety, even when the app is closed or not in use.',
+            [
+              { text: isRTL ? 'إلغاء' : 'Cancel', style: 'cancel', onPress: () => resolve() },
+              { text: isRTL ? 'أوافق' : 'I Understand', onPress: () => resolve() }
+            ]
+          );
+        });
+      }
+
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         Alert.alert(t('error'), isRTL ? 'الرجاء السماح بالوصول للموقع' : 'Please allow location access');

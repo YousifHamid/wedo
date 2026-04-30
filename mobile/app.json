@@ -31,7 +31,8 @@
         "foregroundImage": "./assets/playstore.png"
       },
       "icon": "./assets/playstore.png",
-      "package": "com.wedo.ride"
+      "package": "com.wedo.ride",
+      "versionCode": 4
     },
     "ios": {
       "icon": "./assets/appstore.png",
@@ -61,6 +62,16 @@
         {
           "photosPermission": "Wedo needs access to your camera roll to upload your profile picture.",
           "cameraPermission": "Wedo needs access to your camera to take your profile picture."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          }
         }
       ]
     ],
