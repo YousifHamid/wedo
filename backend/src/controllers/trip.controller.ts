@@ -18,14 +18,14 @@ export const requestTrip = async (req: Request, res: Response) => {
     let pZoneId = pickupZoneId;
     let dZoneId = dropoffZoneId;
     if (!mongoose.Types.ObjectId.isValid(pZoneId) || !mongoose.Types.ObjectId.isValid(dZoneId)) {
-       const Zone = mongoose.model('Zone');
-       const defaultZone = await Zone.findOne();
-       if (defaultZone) {
-          pZoneId = mongoose.Types.ObjectId.isValid(pZoneId) ? pZoneId : defaultZone._id.toString();
-          dZoneId = mongoose.Types.ObjectId.isValid(dZoneId) ? dZoneId : defaultZone._id.toString();
-       } else {
-          return res.status(400).json({ message: 'System error: No zones configured.' });
-       }
+      const Zone = mongoose.model('Zone');
+      const defaultZone = await Zone.findOne();
+      if (defaultZone) {
+        pZoneId = mongoose.Types.ObjectId.isValid(pZoneId) ? pZoneId : defaultZone._id.toString();
+        dZoneId = mongoose.Types.ObjectId.isValid(dZoneId) ? dZoneId : defaultZone._id.toString();
+      } else {
+        return res.status(400).json({ message: 'System error: No zones configured.' });
+      }
     }
 
     // Get fare estimate
@@ -79,7 +79,7 @@ export const acceptTrip = async (req: Request, res: Response) => {
 
     // Check driver wallet balance
     const driver = await User.findById(driverId) as any;
-    
+
     if (!driver) return res.status(404).json({ message: 'Driver not found' });
 
     console.log(driver._id);
@@ -168,14 +168,14 @@ export const updateTripStatus = async (req: Request, res: Response) => {
       );
       trip.commission = commResult.commission;
       trip.paymentMethod = commResult.isFreeForRider ? ('system_subsidized' as any) : 'cash';
-      
+
       await User.findByIdAndUpdate(trip.driver, { isBusy: false });
       // Release proxy numbers after trip ends
-      try { await releaseProxyNumbers(tripId); } catch (_) {}
+      try { await releaseProxyNumbers(tripId); } catch (_) { }
     }
 
     if (status === TripStatus.CANCELLED && trip.driver) {
-       await User.findByIdAndUpdate(trip.driver, { isBusy: false });
+      await User.findByIdAndUpdate(trip.driver, { isBusy: false });
     }
 
     await trip.save();
